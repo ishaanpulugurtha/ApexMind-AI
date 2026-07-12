@@ -1,6 +1,8 @@
 """ApexMind AI — High-Performance Cognitive Composure Simulation."""
 
 import sys
+import time
+import uuid
 from pathlib import Path
 
 import streamlit as st
@@ -12,7 +14,7 @@ ROOT = Path(__file__).parent
 sys.path.insert(0, str(ROOT))
 
 from audio_stressors import render_pressure_audio
-from components.countdown_timer import countdown_timer
+from countdown_display import render_countdown_display
 from config import (
     LEVELS,
     POSITIONS_BY_SPORT,
@@ -93,9 +95,11 @@ def _init_state():
         "scenario_cache": {},
         "choice_locked": False,
         "match_state": None,
-        "capture_timer": False,
-        "pending_choice": None,
         "api_notice": None,
+        "round_timer_start": None,
+        "timer_round": None,
+        "processed_timer_event": None,
+        "sim_session_id": None,
     }
     for key, val in defaults.items():
         if key not in st.session_state:
@@ -130,8 +134,8 @@ def _advance_or_finish():
     if st.session_state.simulation_round < TOTAL_ROUNDS:
         st.session_state.simulation_round += 1
         st.session_state.choice_locked = False
-        st.session_state.capture_timer = False
-        st.session_state.pending_choice = None
+        st.session_state.processed_timer_event = None
+        st.session_state.timer_round = None
     else:
         data = st.session_state.performance_data
         entry = {
@@ -153,6 +157,22 @@ def _handle_freeze():
         return
     _record_choice("FREEZE", 0.0)
     _advance_or_finish()
+
+
+def _ensure_round_timer():
+    """Start server-side clock once per simulation round."""
+    rnd = st.session_state.simulation_round
+    if st.session_state.timer_round != rnd:
+        st.session_state.timer_round = rnd
+        st.session_state.round_timer_start = time.time()
+        st.session_state.processed_timer_event = None
+
+
+def _get_time_remaining() -> float:
+    if st.session_state.round_timer_start is None:
+        return float(TIMER_SECONDS)
+    elapsed = time.time() - st.session_state.round_timer_start
+    return max(0.0, TIMER_SECONDS - elapsed)
 
 
 def _load_scenario_for_round():
@@ -190,6 +210,26 @@ def _format_slider_time(seconds: int) -> str:
         m, s = divmod(seconds, 60)
         return f"{m} min {s} sec"
     return f"{seconds} sec"
+
+
+@st.fragment(run_every=1)
+def _watch_timer_expiry():
+    """Server-side freeze detection — no custom component callbacks."""
+    if st.session_state.choice_locked:
+        return
+    if st.session_state.round_timer_start is None:
+        return
+
+    rnd = st.session_state.simulation_round
+    event_id = f"freeze_r{rnd}"
+
+    if (
+        _get_time_remaining() <= 0
+        and st.session_state.processed_timer_event != event_id
+    ):
+        st.session_state.processed_timer_event = event_id
+        _handle_freeze()
+        st.rerun(scope="app")
 
 
 def render_onboarding():
@@ -262,9 +302,11 @@ def render_onboarding():
         st.session_state.previous_choices = []
         st.session_state.scenario_cache = {}
         st.session_state.choice_locked = False
-        st.session_state.capture_timer = False
-        st.session_state.pending_choice = None
         st.session_state.api_notice = None
+        st.session_state.round_timer_start = None
+        st.session_state.timer_round = None
+        st.session_state.processed_timer_event = None
+        st.session_state.sim_session_id = str(uuid.uuid4())[:8]
         st.rerun()
 
 
@@ -280,9 +322,11 @@ def render_simulation():
     if st.session_state.api_notice:
         st.warning(st.session_state.api_notice)
 
-    render_pressure_audio(state["pressure"])
+    session_id = st.session_state.sim_session_id or "default"
+    render_pressure_audio(state["pressure"], session_key=session_id)
 
     scenario = _load_scenario_for_round()
+    _ensure_round_timer()
 
     info_cols = st.columns(4)
     info_cols[0].metric("Time Left (Match)", _format_slider_time(state["time_left"]))
@@ -299,29 +343,9 @@ def render_simulation():
     timer_col, choice_col = st.columns([1, 3])
 
     with timer_col:
-        timer_key = f"countdown_r{rnd}"
-        timer_result = countdown_timer(
-            duration=TIMER_SECONDS,
-            capture=st.session_state.capture_timer,
-            reset_key=str(rnd),
-            key=timer_key,
-        )
+        render_countdown_display(TIMER_SECONDS, st.session_state.round_timer_start)
+        _watch_timer_expiry()
         st.caption("Client-side · 60fps")
-
-    if timer_result:
-        event = timer_result.get("event")
-        if event == "freeze" and not st.session_state.choice_locked:
-            _handle_freeze()
-            st.rerun()
-        elif event == "capture" and st.session_state.pending_choice:
-            _record_choice(
-                st.session_state.pending_choice,
-                timer_result.get("time_remaining", 0),
-            )
-            st.session_state.pending_choice = None
-            st.session_state.capture_timer = False
-            _advance_or_finish()
-            st.rerun()
 
     with choice_col:
         options = [
@@ -342,8 +366,9 @@ def render_simulation():
             disabled=st.session_state.choice_locked or choice is None,
             use_container_width=True,
         ):
-            st.session_state.pending_choice = choice
-            st.session_state.capture_timer = True
+            time_remaining = _get_time_remaining()
+            _record_choice(choice, time_remaining)
+            _advance_or_finish()
             st.rerun()
 
 

@@ -42,7 +42,7 @@ ApexMind AI/
 ├── state_engine.py                 # Deterministic branching state machine
 ├── storage.py                      # Supabase + local JSON fallback
 ├── audio_stressors.py              # HTML5 crowd/whistle audio
-├── components/countdown_timer/     # Client-side JS countdown component
+├── countdown_display.py            # Client-side JS countdown (html iframe)
 ├── supabase_schema.sql             # Cloud DB setup script
 └── data/                           # Local sessions (gitignored)
 ```
