@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react'
 import Phaser from 'phaser'
+import type { ScanFocus } from '../lib/pitchRead'
 import { createPitchGame, getPitchScene } from './PitchScene'
 import type { PitchSetup } from '../types'
 
@@ -8,9 +9,18 @@ interface Props {
   pressure: string
   animation?: string | null
   sceneKey?: string
+  scanFocus?: ScanFocus | null
+  hoverCueLabel?: string | null
 }
 
-export default function PhaserPitch({ pitch, pressure, animation, sceneKey }: Props) {
+export default function PhaserPitch({
+  pitch,
+  pressure,
+  animation,
+  sceneKey,
+  scanFocus = null,
+  hoverCueLabel = null,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const gameRef = useRef<Phaser.Game | null>(null)
   const pitchRef = useRef({ pitch, pressure })
@@ -46,7 +56,6 @@ export default function PhaserPitch({ pitch, pressure, animation, sceneKey }: Pr
     }
   }, [syncPitch])
 
-  // Retry until Phaser scene is ready (fixes Round 1 blank cues)
   useEffect(() => {
     if (syncPitch()) return
     let attempts = 0
@@ -55,6 +64,16 @@ export default function PhaserPitch({ pitch, pressure, animation, sceneKey }: Pr
     }, 32)
     return () => clearInterval(id)
   }, [pitch, pressure, sceneKey, syncPitch])
+
+  useEffect(() => {
+    const scene = getPitchScene(gameRef.current!)
+    if (scene) scene.setScanFocus(scanFocus ?? null)
+  }, [scanFocus, sceneKey])
+
+  useEffect(() => {
+    const scene = getPitchScene(gameRef.current!)
+    if (scene) scene.setHoverCueLabel(hoverCueLabel ?? null)
+  }, [hoverCueLabel, sceneKey])
 
   useEffect(() => {
     if (!animation) return

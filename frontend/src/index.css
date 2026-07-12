@@ -301,10 +301,16 @@ select, input[type="range"] {
   box-shadow: 0 0 0 1px var(--accent);
 }
 
+.choice-btn.hovered:not(.selected) {
+  border-color: #86efac;
+  background: rgba(34, 197, 94, 0.08);
+}
+
 .choice-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .choice-label { display: block; font-weight: 600; font-size: 0.92rem; margin-bottom: 0.25rem; }
 .choice-tradeoff { display: block; font-size: 0.78rem; color: var(--muted); }
+.choice-cue-link { display: block; font-size: 0.7rem; color: #86efac; margin-top: 0.25rem; }
 
 .lock-btn { margin-top: 0.75rem; }
 
@@ -465,8 +471,15 @@ select, input[type="range"] {
 /* ── Simulation scan phase ── */
 .pitch-frame { position: relative; border-radius: 12px; overflow: hidden; border: 2px solid var(--border); }
 .scan-overlay {
-  position: absolute; inset: 0; display: flex; align-items: flex-start; justify-content: center;
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center;
+  justify-content: flex-start; gap: 0.5rem;
   padding-top: 1rem; background: rgba(15,23,42,0.35); pointer-events: none; z-index: 5;
+}
+.scan-step-label {
+  font-size: 0.78rem; font-weight: 600; color: #e2e8f0; text-align: center;
+  max-width: 90%; line-height: 1.35;
+  background: rgba(15,23,42,0.85); padding: 0.4rem 0.75rem; border-radius: 6px;
+  border: 1px solid var(--border);
 }
 .scan-badge {
   background: var(--accent); color: #0f172a; font-weight: 800; font-size: 0.7rem;
@@ -480,6 +493,28 @@ select, input[type="range"] {
 .cue-item.threat { color: #fca5a5; }
 .cue-item.open { color: #86efac; }
 .cue-item.danger { color: #f87171; }
+.cue-item.you { color: #fde047; }
+
+.situation-chips {
+  display: flex; flex-wrap: wrap; gap: 0.45rem; margin: 0.65rem 0 0.25rem;
+}
+.situation-chips.dimmed .situation-chip { opacity: 0.55; }
+.situation-chip {
+  font-size: 0.72rem; font-weight: 600; padding: 0.3rem 0.55rem; border-radius: 999px;
+  border: 1px solid var(--border); background: rgba(15,23,42,0.6);
+}
+.situation-chip.threat { color: #fecaca; border-color: #7f1d1d; background: #450a0a55; }
+.situation-chip.open { color: #bbf7d0; border-color: #166534; background: #14532d55; }
+.situation-chip.danger { color: #fca5a5; border-color: #991b1b; background: #7f1d1d44; }
+.situation-chip.active {
+  transform: scale(1.04);
+  box-shadow: 0 0 0 2px rgba(56,189,248,0.45);
+  opacity: 1 !important;
+}
+
+.hover-hint {
+  font-size: 0.75rem; color: var(--muted); margin: 0.35rem 0 0.75rem; font-style: italic;
+}
 
 .scenario-headline {
   font-size: 1.35rem; font-weight: 800; letter-spacing: 0.02em;

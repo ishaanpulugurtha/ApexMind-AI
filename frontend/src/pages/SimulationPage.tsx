@@ -1,12 +1,20 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/client'
 import ChoicePanel from '../components/ChoicePanel'
 import DecisionTimer, { MatchHUD } from '../components/MatchHUD'
+import SituationChips from '../components/SituationChips'
 import PhaserPitch from '../game/PhaserPitch'
+import {
+  SCAN_STEP_LABELS,
+  SCAN_STEPS,
+  cueLabelForChoice,
+  extractSituationChips,
+} from '../lib/pitchRead'
 import type { Outcome, Scenario } from '../types'
 
-const SCAN_MS = 2800
+const SCAN_MS = 3200
+const SCAN_STEP_MS = 800
 
 export default function SimulationPage() {
   const { sessionId } = useParams<{ sessionId: string }>()
@@ -16,23 +24,62 @@ export default function SimulationPage() {
 
   const [scenario, setScenario] = useState<Scenario | null>(initial ?? null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [locked, setLocked] = useState(false)
   const [outcomeMsg, setOutcomeMsg] = useState<string | null>(null)
   const [animation, setAnimation] = useState<string | null>(null)
   const [timerKey, setTimerKey] = useState(0)
   const [phase, setPhase] = useState<'scan' | 'decide'>('scan')
+  const [scanStepIndex, setScanStepIndex] = useState(0)
   const timerStartRef = useRef(Date.now())
   const expiredRef = useRef(false)
 
   const timerSeconds = 10
 
+  const situationChips = useMemo(
+    () => extractSituationChips(scenario?.pitch.visual_cues),
+    [scenario?.pitch.visual_cues],
+  )
+
+  const choiceCueMap = useMemo(() => {
+    if (!scenario) return new Map<string, string | null>()
+    const cues = scenario.pitch.visual_cues ?? []
+    return new Map(
+      scenario.choices.map((c, i) => [c.id, cueLabelForChoice(c, cues, i)] as const),
+    )
+  }, [scenario])
+
+  const hoverCueLabel = hoveredId ? choiceCueMap.get(hoveredId) ?? null : null
+  const activeChipLabel =
+    phase === 'scan'
+      ? situationChips.find((c) => {
+          const focus = SCAN_STEPS[scanStepIndex]
+          if (focus === 'threat') return c.type === 'threat_arrow'
+          if (focus === 'danger') return c.type === 'danger_zone'
+          if (focus === 'space') return c.type === 'open_lane'
+          return false
+        })?.label ?? null
+      : hoverCueLabel
+
   useEffect(() => {
     setPhase('scan')
-    const t = setTimeout(() => setPhase('decide'), SCAN_MS)
-    return () => clearTimeout(t)
+    setScanStepIndex(0)
+    setHoveredId(null)
+    const endScan = setTimeout(() => setPhase('decide'), SCAN_MS)
+    return () => clearTimeout(endScan)
   }, [scenario?.node_id])
 
-  // Start decision timer only after scan — not during scan or outcome replay
+  useEffect(() => {
+    if (phase !== 'scan') return
+    setScanStepIndex(0)
+    let step = 0
+    const id = window.setInterval(() => {
+      step += 1
+      if (step < SCAN_STEPS.length) setScanStepIndex(step)
+    }, SCAN_STEP_MS)
+    return () => clearInterval(id)
+  }, [scenario?.node_id, phase])
+
   useEffect(() => {
     if (phase !== 'decide' || outcomeMsg) return
     timerStartRef.current = Date.now()
@@ -51,6 +98,7 @@ export default function SimulationPage() {
     if (result.next_scenario) {
       setScenario(result.next_scenario)
       setSelectedId(null)
+      setHoveredId(null)
       setLocked(false)
       setOutcomeMsg(null)
       setAnimation(null)
@@ -92,6 +140,7 @@ export default function SimulationPage() {
 
   const headline = scenario.scenario_headline || `Round ${scenario.round}`
   const scanHint = scenario.scenario_scan || 'Read the pitch before the options appear.'
+  const scanFocus = phase === 'scan' ? SCAN_STEPS[scanStepIndex] : null
 
   return (
     <div className="page simulation-page">
@@ -104,23 +153,35 @@ export default function SimulationPage() {
       <div className={`sim-layout ${phase === 'scan' ? 'scan-phase' : ''}`}>
         <div className="pitch-col">
           <div className="pitch-frame">
-          <PhaserPitch
-            pitch={scenario.pitch}
-            pressure={scenario.match_state.pressure}
-            animation={animation}
-            sceneKey={scenario.node_id}
-          />
+            <PhaserPitch
+              pitch={scenario.pitch}
+              pressure={scenario.match_state.pressure}
+              animation={animation}
+              sceneKey={scenario.node_id}
+              scanFocus={scanFocus}
+              hoverCueLabel={phase === 'decide' ? hoverCueLabel : null}
+            />
             {phase === 'scan' && (
               <div className="scan-overlay">
                 <span className="scan-badge">SCAN PHASE</span>
+                <span className="scan-step-label">{SCAN_STEP_LABELS[SCAN_STEPS[scanStepIndex]]}</span>
               </div>
             )}
           </div>
+
+          <SituationChips
+            chips={situationChips}
+            activeLabel={activeChipLabel}
+            dimmed={phase === 'scan'}
+          />
+
           <div className="cue-legend">
-            <span className="cue-item threat">→ Threat</span>
-            <span className="cue-item open">→ Open lane</span>
-            <span className="cue-item danger">◉ Danger zone</span>
+            <span className="cue-item threat">→ Red = threat</span>
+            <span className="cue-item open">→ Green = space</span>
+            <span className="cue-item danger">◉ Red zone = danger</span>
+            <span className="cue-item you">★ Yellow = you</span>
           </div>
+
           <DecisionTimer
             key={timerKey}
             seconds={timerSeconds}
@@ -143,8 +204,15 @@ export default function SimulationPage() {
             disabled={locked}
             hidden={phase === 'scan'}
             selectedId={selectedId}
+            hoveredId={hoveredId}
+            choiceCueMap={choiceCueMap}
             onSelect={setSelectedId}
+            onHover={setHoveredId}
           />
+
+          {phase === 'decide' && (
+            <p className="hover-hint">Hover a choice to see its lane highlighted on the pitch</p>
+          )}
 
           {phase === 'decide' && (
             <button
