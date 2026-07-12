@@ -186,7 +186,7 @@ def submit_choice(session_id: str, req: ChoiceRequest):
         choice["outcome"],
     )
 
-    next_node_id = resolve_next_node(session["tree"], choice.get("next_node"))
+    next_node_id = resolve_next_node(session["tree"], choice.get("next_node"), session["match_state"])
     transition = session["match_state"]["transition_log"][-1]
 
     if next_node_id:
@@ -241,7 +241,7 @@ def submit_freeze(session_id: str, req: FreezeRequest):
 
     # Advance to first choice's next node as penalty path, or complete if round 3
     fallback = node["choices"][0] if node.get("choices") else {}
-    next_node_id = resolve_next_node(session["tree"], fallback.get("next_node"))
+    next_node_id = resolve_next_node(session["tree"], fallback.get("next_node"), session["match_state"])
     transition = session["match_state"]["transition_log"][-1]
 
     if next_node_id and node["round"] < TOTAL_ROUNDS:

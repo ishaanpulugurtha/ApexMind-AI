@@ -57,20 +57,32 @@ def pick_entry_node(tree: dict, catalyst: str | None = None) -> dict:
     return get_node(tree, node_id)
 
 
-def pick_final_node(tree: dict) -> dict:
-    """Random Round 3 finale for replay variety."""
+def pick_final_node(tree: dict, match_state: dict | None = None) -> dict:
+    """Pick Round 3 finale weighted by live score — no 'protect lead' when down."""
     nodes = tree["nodes"]
     pool = tree.get("final_nodes", ["r3_final"])
     pool = [nid for nid in pool if nid in nodes]
     if not pool:
         pool = ["r3_final"]
-    return get_node(tree, random.choice(pool))
+
+    score_idx = match_state.get("score_index", 2) if match_state else 2
+    if score_idx >= 3:
+        preferred = [n for n in pool if n in ("r3_final_lead", "r3_final_counter")]
+    elif score_idx <= 1:
+        preferred = [n for n in pool if n in ("r3_final", "r3_final_counter")]
+    else:
+        preferred = pool
+
+    pick_from = preferred if preferred else pool
+    return get_node(tree, random.choice(pick_from))
 
 
-def resolve_next_node(tree: dict, next_node_id: str | None) -> str | None:
+def resolve_next_node(
+    tree: dict, next_node_id: str | None, match_state: dict | None = None
+) -> str | None:
     """Map pool tokens (e.g. r3_pool) to concrete node ids."""
     if next_node_id == "r3_pool":
-        return pick_final_node(tree)["id"]
+        return pick_final_node(tree, match_state)["id"]
     return next_node_id
 
 

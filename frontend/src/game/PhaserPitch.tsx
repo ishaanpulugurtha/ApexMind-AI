@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react'
 import Phaser from 'phaser'
-import type { ScanFocus } from '../lib/pitchRead'
+import type { ScanFocus, TapOption } from '../lib/pitchRead'
 import { createPitchGame, getPitchScene } from './PitchScene'
 import type { PitchSetup } from '../types'
 
@@ -11,6 +11,11 @@ interface Props {
   sceneKey?: string
   scanFocus?: ScanFocus | null
   hoverCueLabel?: string | null
+  selectedCueLabel?: string | null
+  pitchInteractive?: boolean
+  showTapHints?: boolean
+  tapOptions?: TapOption[]
+  onCueSelect?: (cueLabel: string) => void
 }
 
 export default function PhaserPitch({
@@ -20,11 +25,18 @@ export default function PhaserPitch({
   sceneKey,
   scanFocus = null,
   hoverCueLabel = null,
+  selectedCueLabel = null,
+  pitchInteractive = false,
+  showTapHints = false,
+  tapOptions = [],
+  onCueSelect,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const gameRef = useRef<Phaser.Game | null>(null)
   const pitchRef = useRef({ pitch, pressure })
+  const onCueSelectRef = useRef(onCueSelect)
   pitchRef.current = { pitch, pressure }
+  onCueSelectRef.current = onCueSelect
 
   const syncPitch = useCallback((): boolean => {
     const game = gameRef.current
@@ -74,6 +86,27 @@ export default function PhaserPitch({
     const scene = getPitchScene(gameRef.current!)
     if (scene) scene.setHoverCueLabel(hoverCueLabel ?? null)
   }, [hoverCueLabel, sceneKey])
+
+  useEffect(() => {
+    const scene = getPitchScene(gameRef.current!)
+    if (scene) scene.setSelectedCueLabel(selectedCueLabel ?? null)
+  }, [selectedCueLabel, sceneKey])
+
+  useEffect(() => {
+    const scene = getPitchScene(gameRef.current!)
+    if (!scene) return
+    scene.setPitchInteractive(pitchInteractive, (label) => onCueSelectRef.current?.(label))
+  }, [pitchInteractive, sceneKey])
+
+  useEffect(() => {
+    const scene = getPitchScene(gameRef.current!)
+    if (scene) scene.setShowTapHints(showTapHints && pitchInteractive)
+  }, [showTapHints, pitchInteractive, sceneKey])
+
+  useEffect(() => {
+    const scene = getPitchScene(gameRef.current!)
+    if (scene) scene.setTapOptions(tapOptions)
+  }, [tapOptions, sceneKey])
 
   useEffect(() => {
     if (!animation) return

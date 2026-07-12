@@ -1,14 +1,29 @@
 import Phaser from 'phaser'
-import type { ScanFocus } from '../lib/pitchRead'
+import { cueAnchor, filterCuesForDisplay } from '../lib/pitchCues'
+import type { ScanFocus, TapOption } from '../lib/pitchRead'
 import type { PitchSetup, VisualCue } from '../types'
 
 const W = 640
 const H = 420
+const PAD_X = 28
+const PAD_Y = 24
+const PLAY_W = W - PAD_X * 2
+const PLAY_H = H - PAD_Y * 2
+
+/** Spread tap buttons so they never stack on the ball */
+const TAP_SPREAD = [
+  { x: -58, y: -42 },
+  { x: 58, y: -28 },
+  { x: 0, y: 48 },
+]
 
 interface RegisteredCue {
   key: string
   focus: ScanFocus | null
+  actionShort: string
   objects: Phaser.GameObjects.GameObject[]
+  hitZone?: Phaser.GameObjects.Arc
+  tapLabel?: Phaser.GameObjects.Text
 }
 
 export class PitchScene extends Phaser.Scene {
@@ -25,7 +40,14 @@ export class PitchScene extends Phaser.Scene {
   private pendingUpdate: { pitch: PitchSetup; pressure: string } | null = null
   private scanFocus: ScanFocus | null = null
   private hoverCueLabel: string | null = null
-  private scanTimer: Phaser.Time.TimerEvent | null = null
+  private pitchHoverLabel: string | null = null
+  private selectedCueLabel: string | null = null
+  private pitchInteractive = false
+  private showTapHints = false
+  private onCueSelect: ((label: string) => void) | null = null
+  private tapHintObjects: Phaser.GameObjects.GameObject[] = []
+  private tapOptions: TapOption[] = []
+  private lastScanFocus: ScanFocus | null | undefined = undefined
 
   constructor() {
     super({ key: 'PitchScene' })
@@ -52,45 +74,53 @@ export class PitchScene extends Phaser.Scene {
       g.fillRect(0, (H / 8) * i, W, H / 8)
     }
     g.lineStyle(2, 0xffffff, 0.85)
-    g.strokeRect(40, 30, W - 80, H - 60)
-    g.strokeCircle(W / 2, H / 2, 55)
+    g.strokeRect(PAD_X, PAD_Y, PLAY_W, PLAY_H)
+    g.strokeCircle(W / 2, H / 2, 48)
     g.beginPath()
-    g.moveTo(W / 2, 30)
-    g.lineTo(W / 2, H - 30)
+    g.moveTo(W / 2, PAD_Y)
+    g.lineTo(W / 2, H - PAD_Y)
     g.strokePath()
-    g.strokeRect(40, H / 2 - 70, 90, 140)
-    g.strokeRect(W - 130, H / 2 - 70, 90, 140)
+    g.strokeRect(PAD_X, H / 2 - 58, 72, 116)
+    g.strokeRect(W - PAD_X - 72, H / 2 - 58, 72, 116)
+
+    // Goal mouths
+    g.fillStyle(0xffffff, 0.2)
+    g.fillRect(PAD_X - 2, H / 2 - 36, 6, 72)
+    g.fillRect(W - PAD_X - 4, H / 2 - 36, 6, 72)
 
     this.add
-      .text(W - 52, 38, 'ATTACK →', {
-        fontSize: '11px',
-        color: '#e2e8f0',
+      .text(PAD_X + 36, H / 2, 'YOUR GOAL\n← defend', {
+        fontSize: '10px',
+        color: '#cbd5e1',
         fontFamily: 'Inter, sans-serif',
         fontStyle: 'bold',
+        align: 'center',
         backgroundColor: '#0f172acc',
-        padding: { x: 6, y: 3 },
+        padding: { x: 6, y: 4 },
       })
       .setOrigin(0.5)
       .setDepth(1)
 
     this.add
-      .text(52, 38, '← DEFEND', {
-        fontSize: '11px',
-        color: '#94a3b8',
+      .text(W - PAD_X - 36, H / 2, 'THEIR GOAL\nattack →', {
+        fontSize: '10px',
+        color: '#fecaca',
         fontFamily: 'Inter, sans-serif',
-        backgroundColor: '#0f172a99',
-        padding: { x: 6, y: 3 },
+        fontStyle: 'bold',
+        align: 'center',
+        backgroundColor: '#450a0acc',
+        padding: { x: 6, y: 4 },
       })
       .setOrigin(0.5)
       .setDepth(1)
   }
 
   private toX(n: number) {
-    return 40 + n * (W - 80)
+    return PAD_X + n * PLAY_W
   }
 
   private toY(n: number) {
-    return 30 + n * (H - 60)
+    return PAD_Y + n * PLAY_H
   }
 
   updatePitch(pitch: PitchSetup, pressure: string) {
@@ -100,8 +130,13 @@ export class PitchScene extends Phaser.Scene {
     }
     this.clearDynamic()
     this.registeredCues = []
+    this.lastScanFocus = undefined
 
-    for (const cue of pitch.visual_cues || []) {
+    this.cameras.main.setZoom(1)
+    this.cameras.main.setScroll(0, 0)
+
+    const displayCues = filterCuesForDisplay(pitch.visual_cues)
+    for (const cue of displayCues) {
       this.drawCue(cue)
     }
 
@@ -112,63 +147,54 @@ export class PitchScene extends Phaser.Scene {
       this.track(circle)
     }
 
-    pitch.teammates?.forEach(([nx, ny], i) => {
-      const p = this.add.circle(this.toX(nx), this.toY(ny), 13, 0x38bdf8, 1)
+    pitch.teammates?.forEach(([nx, ny]) => {
+      const p = this.add.circle(this.toX(nx), this.toY(ny), 10, 0x38bdf8, 1)
       p.setStrokeStyle(2, 0xffffff, 0.95)
       p.setDepth(3)
       this.track(p)
       this.playerObjects.push(p)
-      const t = this.add
-        .text(this.toX(nx), this.toY(ny) - 20, `T${i + 1}`, {
-          fontSize: '10px',
-          color: '#bae6fd',
-          fontFamily: 'Inter, sans-serif',
-          fontStyle: 'bold',
-        })
-        .setOrigin(0.5)
-        .setDepth(4)
-      this.track(t)
-      this.playerObjects.push(t)
     })
 
     pitch.opponents?.forEach(([nx, ny], i) => {
-      const p = this.add.circle(this.toX(nx), this.toY(ny), 13, 0xf87171, 1)
+      const p = this.add.circle(this.toX(nx), this.toY(ny), 10, 0xf87171, 1)
       p.setStrokeStyle(2, 0xffffff, 0.95)
       p.setDepth(3)
       this.track(p)
       this.playerObjects.push(p)
-      const lbl = pitch.opponent_labels?.[i] ?? `#${i + 1}`
-      const t = this.add
-        .text(this.toX(nx), this.toY(ny) - 20, lbl, {
-          fontSize: '11px',
-          color: '#fca5a5',
-          fontFamily: 'Inter, sans-serif',
-          fontStyle: 'bold',
-          backgroundColor: '#450a0a99',
-          padding: { x: 3, y: 1 },
-        })
-        .setOrigin(0.5)
-        .setDepth(4)
-      this.track(t)
-      this.playerObjects.push(t)
+      const lbl = pitch.opponent_labels?.[i]
+      if (lbl && i < 2) {
+        const t = this.add
+          .text(this.toX(nx), this.toY(ny) - 22, lbl, {
+            fontSize: '12px',
+            color: '#fecaca',
+            fontFamily: 'Inter, sans-serif',
+            fontStyle: 'bold',
+            backgroundColor: '#450a0acc',
+            padding: { x: 5, y: 2 },
+          })
+          .setOrigin(0.5)
+          .setDepth(4)
+        this.track(t)
+        this.playerObjects.push(t)
+      }
     })
 
     const [yx, yy] = pitch.you || [0.5, 0.5]
     const yxPx = this.toX(yx)
     const yyPx = this.toY(yy)
 
-    this.youRing = this.add.circle(yxPx, yyPx, 22, 0xfbbf24, 0.15)
+    this.youRing = this.add.circle(yxPx, yyPx, 18, 0xfbbf24, 0.15)
     this.youRing.setStrokeStyle(2, 0xfbbf24, 0.5)
     this.youRing.setDepth(4)
     this.track(this.youRing)
 
-    this.youMarker = this.add.circle(yxPx, yyPx, 17, 0xfbbf24, 1)
+    this.youMarker = this.add.circle(yxPx, yyPx, 13, 0xfbbf24, 1)
     this.youMarker.setStrokeStyle(3, 0xffffff, 1)
     this.youMarker.setDepth(6)
     this.track(this.youMarker)
 
     this.youLabel = this.add
-      .text(yxPx, yyPx + 26, 'YOU', {
+      .text(yxPx, yyPx + 22, 'YOU', {
         fontSize: '12px',
         color: '#fef08a',
         fontFamily: 'Inter, sans-serif',
@@ -187,11 +213,23 @@ export class PitchScene extends Phaser.Scene {
     this.ballGlow = this.add.circle(bxPx, byPx, 11, 0xffffff, 0.25)
     this.ballGlow.setDepth(5)
     this.track(this.ballGlow)
-    this.ball = this.add.circle(bxPx, byPx, 8, 0xffffff, 1)
-    this.ball.setStrokeStyle(1, 0xcbd5e1, 0.8)
+    this.ball = this.add.circle(bxPx, byPx, 7, 0xffffff, 1)
+    this.ball.setStrokeStyle(2, 0xcbd5e1, 0.9)
     this.ball.setDepth(6)
     this.track(this.ball)
-    this.playerObjects.push(this.ball, this.ballGlow)
+    const ballLabel = this.add
+      .text(bxPx, byPx - 16, 'BALL', {
+        fontSize: '10px',
+        color: '#f8fafc',
+        fontFamily: 'Inter, sans-serif',
+        fontStyle: 'bold',
+        backgroundColor: '#334155cc',
+        padding: { x: 4, y: 2 },
+      })
+      .setOrigin(0.5)
+      .setDepth(7)
+    this.track(ballLabel)
+    this.playerObjects.push(this.ball, this.ballGlow, ballLabel)
 
     const alpha = pressure === 'Hostile' ? 0.48 : pressure === 'Medium' ? 0.22 : 0.06
     this.crowdOverlay.setFillStyle(0x000000, alpha)
@@ -207,17 +245,90 @@ export class PitchScene extends Phaser.Scene {
 
     this.tweens.add({
       targets: this.youRing,
-      scale: { from: 1, to: 1.18 },
-      alpha: { from: 0.12, to: 0.32 },
-      duration: 700,
+      alpha: { from: 0.12, to: 0.28 },
+      duration: 900,
       yoyo: true,
       repeat: -1,
     })
 
     this.applyReadability()
+    this.bindHitZones()
+    this.refreshTapHints()
+  }
+
+  setShowTapHints(on: boolean) {
+    this.showTapHints = on
+    this.refreshTapHints()
+  }
+
+  setTapOptions(options: TapOption[]) {
+    this.tapOptions = options
+    for (const cue of this.registeredCues) {
+      cue.actionShort = this.actionForCue(cue.key)
+    }
+    this.refreshTapHints()
+  }
+
+  private actionForCue(cueLabel: string): string {
+    return this.tapOptions.find((o) => o.cueLabel === cueLabel)?.actionShort ?? 'Choose'
+  }
+
+  private refreshTapHints() {
+    for (const o of this.tapHintObjects) o.destroy()
+    this.tapHintObjects = []
+    const showButtons = (this.showTapHints || this.selectedCueLabel) && this.pitchInteractive
+    if (!showButtons) return
+
+    this.registeredCues.forEach((cue) => {
+      if (!cue.hitZone || !cue.focus) return
+      const zone = cue.hitZone
+      const isSelected = this.selectedCueLabel === cue.key
+      const isHover = this.pitchHoverLabel === cue.key
+      const showThis = this.showTapHints || isSelected
+
+      if (!showThis) return
+
+      const strokeColor =
+        cue.focus === 'space' ? 0x4ade80 : cue.focus === 'threat' ? 0xfb923c : 0xef4444
+      const ring = this.add.circle(zone.x, zone.y, isSelected ? 38 : 34, 0xffffff, 0)
+      ring.setStrokeStyle(isSelected ? 4 : 2, strokeColor, isSelected || isHover ? 1 : 0.7)
+      ring.setDepth(11)
+      this.track(ring)
+      this.tapHintObjects.push(ring)
+
+      if (this.showTapHints && !isSelected) {
+        this.tweens.add({
+          targets: ring,
+          alpha: { from: 0.5, to: 1 },
+          duration: 800,
+          yoyo: true,
+          repeat: -1,
+        })
+      }
+
+      const bgColor =
+        cue.focus === 'space' ? '#14532d' : cue.focus === 'threat' ? '#7c2d12' : '#450a0a'
+      const lbl = this.add
+        .text(zone.x, zone.y, cue.actionShort, {
+          fontSize: isSelected ? '12px' : '11px',
+          color: '#ffffff',
+          fontFamily: 'Inter, sans-serif',
+          fontStyle: 'bold',
+          backgroundColor: bgColor,
+          padding: { x: 6, y: 4 },
+          align: 'center',
+        })
+        .setOrigin(0.5)
+        .setDepth(12)
+      this.track(lbl)
+      this.tapHintObjects.push(lbl)
+      cue.tapLabel = lbl
+    })
   }
 
   setScanFocus(focus: ScanFocus | null) {
+    if (this.lastScanFocus === focus) return
+    this.lastScanFocus = focus
     this.scanFocus = focus
     this.applyReadability()
   }
@@ -227,12 +338,53 @@ export class PitchScene extends Phaser.Scene {
     this.applyReadability()
   }
 
+  setSelectedCueLabel(label: string | null) {
+    this.selectedCueLabel = label
+    this.applyReadability()
+    this.refreshTapHints()
+  }
+
+  setPitchInteractive(enabled: boolean, onSelect: ((label: string) => void) | null) {
+    this.pitchInteractive = enabled
+    this.onCueSelect = enabled ? onSelect : null
+    this.bindHitZones()
+    this.refreshTapHints()
+  }
+
+  private bindHitZones() {
+    for (const cue of this.registeredCues) {
+      const zone = cue.hitZone
+      if (!zone) continue
+      zone.removeAllListeners()
+      if (!this.pitchInteractive) {
+        zone.disableInteractive()
+        continue
+      }
+      zone.setInteractive({ useHandCursor: true })
+      zone.on('pointerover', () => {
+        this.pitchHoverLabel = cue.key
+        this.applyReadability()
+      })
+      zone.on('pointerout', () => {
+        this.pitchHoverLabel = null
+        this.applyReadability()
+      })
+      zone.on('pointerdown', () => {
+        this.selectedCueLabel = cue.key
+        this.onCueSelect?.(cue.key)
+        this.applyReadability()
+        this.refreshTapHints()
+      })
+    }
+  }
+
   private applyReadability() {
-    if (this.hoverCueLabel) {
+    const highlightLabel = this.pitchHoverLabel || this.hoverCueLabel || this.selectedCueLabel
+
+    if (highlightLabel && !this.scanFocus) {
       this.setGroupAlpha(this.registeredCues, 0.18)
       this.setGroupAlpha(this.playerObjects, 0.45)
-      this.brightenCue(this.hoverCueLabel, 1)
-      this.setYouHighlight(false)
+      this.brightenCue(highlightLabel, 1)
       return
     }
 
@@ -245,7 +397,6 @@ export class PitchScene extends Phaser.Scene {
 
     this.setGroupAlpha(this.registeredCues, 1)
     this.setGroupAlpha(this.playerObjects, 1)
-    this.setYouHighlight(true)
   }
 
   private brightenScanFocus(focus: ScanFocus) {
@@ -253,25 +404,22 @@ export class PitchScene extends Phaser.Scene {
       if (cue.focus === focus) this.setObjectsAlpha(cue.objects, 1)
     }
     if (focus === 'you') {
-      this.setObjectsAlpha(this.playerObjects.filter((o) => o === this.youMarker || o === this.youRing || o === this.youLabel), 1)
+      this.setObjectsAlpha(
+        this.playerObjects.filter(
+          (o) => o === this.youMarker || o === this.youRing || o === this.youLabel,
+        ),
+        1,
+      )
       this.setObjectsAlpha([this.ball, this.ballGlow], 1)
-      this.tweens.add({
-        targets: [this.youMarker, this.ball],
-        scale: { from: 1, to: 1.08 },
-        duration: 350,
-        yoyo: true,
-      })
     }
   }
 
   private brightenCue(label: string, alpha: number) {
     const cue = this.registeredCues.find((c) => c.key === label)
-    if (cue) this.setObjectsAlpha(cue.objects, alpha)
-  }
-
-  private setYouHighlight(on: boolean) {
-    if (!this.youMarker) return
-    this.youMarker.setScale(on ? 1 : 1)
+    if (cue) {
+      this.setObjectsAlpha(cue.objects, alpha)
+      if (cue.hitZone) cue.hitZone.setAlpha(0.35)
+    }
   }
 
   private setGroupAlpha(groups: RegisteredCue[] | Phaser.GameObjects.GameObject[], alpha: number) {
@@ -303,44 +451,51 @@ export class PitchScene extends Phaser.Scene {
     if (cue.type === 'threat_arrow' && cue.from && cue.to) {
       const g = this.add.graphics()
       g.setDepth(2)
-      this.drawArrow(g, cue.from, cue.to, 0xf87171, 1, 5)
+      this.drawArrow(g, cue.from, cue.to, 0xf87171, 1, 4)
       objects.push(g)
-      if (cue.label) objects.push(this.makeCueLabel(cue.to, cue.label, '#fecaca', '#450a0acc'))
     } else if (cue.type === 'open_lane' && cue.from && cue.to) {
       const g = this.add.graphics()
       g.setDepth(2)
-      this.drawArrow(g, cue.from, cue.to, 0x4ade80, 1, 5, true)
+      this.drawArrow(g, cue.from, cue.to, 0x4ade80, 1, 4, true)
       objects.push(g)
-      if (cue.label) objects.push(this.makeCueLabel(cue.to, cue.label, '#bbf7d0', '#14532dcc'))
     } else if (cue.type === 'danger_zone' && cue.at && cue.radius) {
       const c = this.add.circle(
         this.toX(cue.at[0]),
         this.toY(cue.at[1]),
-        cue.radius * 190,
+        Math.min(cue.radius * 120, 36),
         0xef4444,
-        0.28,
+        0.22,
       )
       c.setDepth(2)
-      c.setStrokeStyle(3, 0xfca5a5, 0.9)
+      c.setStrokeStyle(2, 0xfca5a5, 0.85)
       objects.push(c)
-      if (cue.label) objects.push(this.makeCueLabel(cue.at, cue.label, '#fecaca', '#450a0acc'))
-    } else if (cue.type === 'label' && cue.at) {
-      const t = this.add
-        .text(this.toX(cue.at[0]), this.toY(cue.at[1]), cue.text || cue.label || '', {
-          fontSize: '13px',
-          color: cue.color || '#ffffff',
-          fontFamily: 'Inter, sans-serif',
-          fontStyle: 'bold',
-          backgroundColor: '#0f172ae6',
-          padding: { x: 6, y: 3 },
-        })
-        .setOrigin(0.5)
-        .setDepth(7)
-      objects.push(t)
     }
 
     for (const o of objects) this.track(o)
-    if (objects.length) this.registeredCues.push({ key, focus, objects })
+    if (objects.length) {
+      const spread = TAP_SPREAD[this.registeredCues.length] ?? { x: 0, y: 0 }
+      const entry: RegisteredCue = {
+        key,
+        focus,
+        actionShort: this.actionForCue(key),
+        objects,
+      }
+      const anchor = cueAnchor(cue)
+      if (focus && anchor) {
+        const hitX = this.toX(anchor[0]) + spread.x
+        const hitY = this.toY(anchor[1]) + spread.y
+        const hitColor =
+          cue.type === 'open_lane' ? 0x4ade80 : cue.type === 'threat_arrow' ? 0xfb923c : 0xef4444
+        const hit = this.add.circle(hitX, hitY, 40, hitColor, 0.08)
+        hit.setDepth(9)
+        hit.setStrokeStyle(1, hitColor, 0.4)
+        this.track(hit)
+        entry.hitZone = hit
+        entry.hitZone.setData('hitX', hitX)
+        entry.hitZone.setData('hitY', hitY)
+      }
+      this.registeredCues.push(entry)
+    }
   }
 
   private drawArrow(
@@ -401,22 +556,10 @@ export class PitchScene extends Phaser.Scene {
     )
   }
 
-  private makeCueLabel(at: [number, number], text: string, color: string, bg: string) {
-    return this.add
-      .text(this.toX(at[0]), this.toY(at[1]) - 16, text, {
-        fontSize: '11px',
-        color,
-        fontFamily: 'Inter, sans-serif',
-        fontStyle: 'bold',
-        backgroundColor: bg,
-        padding: { x: 6, y: 3 },
-      })
-      .setOrigin(0.5)
-      .setDepth(8)
-  }
-
   playAnimation(name: string) {
     if (!this.ball || !this.youMarker) return
+    this.ball.setScale(1)
+    this.youMarker.setScale(1)
     const tweens = this.tweens
     switch (name) {
       case 'press_forward':
@@ -441,14 +584,14 @@ export class PitchScene extends Phaser.Scene {
   }
 
   private clearDynamic() {
-    if (this.scanTimer) {
-      this.scanTimer.remove()
-      this.scanTimer = null
-    }
     for (const o of this.dynamicObjects) o.destroy()
     this.dynamicObjects = []
     this.playerObjects = []
     this.registeredCues = []
+    this.selectedCueLabel = null
+    this.pitchHoverLabel = null
+    for (const o of this.tapHintObjects) o.destroy()
+    this.tapHintObjects = []
     this.tweens.killAll()
   }
 }
@@ -461,7 +604,10 @@ export function createPitchGame(parent: HTMLElement): Phaser.Game {
     parent,
     backgroundColor: '#0f172a',
     scene: [PitchScene],
-    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+    scale: {
+      mode: Phaser.Scale.NONE,
+      autoCenter: Phaser.Scale.NO_CENTER,
+    },
   })
 }
 
