@@ -1,0 +1,269 @@
+{
+  "sport": "Soccer",
+  "position": "Central Defensive Midfielder",
+  "start_node": "r1_turnover",
+  "nodes": {
+    "r1_turnover": {
+      "id": "r1_turnover",
+      "round": 1,
+      "scenario_headline": "TURNOVER — Counter building",
+      "scenario_scan": "Read the red threat arrow and green outlet lane before choosing.",
+      "scenario_text": "Ball lost at halfway. #10 is turning. Gap behind your CB.",
+      "pitch": {
+        "ball": [0.52, 0.48],
+        "you": [0.48, 0.52],
+        "teammates": [[0.35, 0.62], [0.62, 0.38], [0.28, 0.45]],
+        "opponents": [[0.58, 0.42], [0.72, 0.55], [0.55, 0.28]],
+        "pressure_zones": [[0.55, 0.45, 0.12]],
+        "highlight": "you",
+        "visual_cues": [
+          {"type": "threat_arrow", "from": [0.58, 0.42], "to": [0.72, 0.55], "label": "Counter path"},
+          {"type": "danger_zone", "at": [0.62, 0.38], "radius": 0.09, "label": "Gap behind CB"},
+          {"type": "open_lane", "from": [0.48, 0.52], "to": [0.35, 0.62], "label": "Recycle here"},
+          {"type": "label", "at": [0.58, 0.40], "text": "#10", "color": "#fca5a5"}
+        ]
+      },
+      "choices": [
+        {
+          "id": "immediate_press",
+          "label": "Sprint to close down #10 before he can turn",
+          "tradeoff": "High risk — win the ball back or get bypassed entirely",
+          "integrity_weight": 0.62,
+          "effects": { "score_delta": 0, "time_delta": 8, "pressure_delta": 1 },
+          "next_node": "r2_after_press",
+          "outcome": "You flew at #10 — he slips the pass wide. Your CB is scrambling.",
+          "animation": "press_forward"
+        },
+        {
+          "id": "shield_recycle",
+          "label": "Drop between the lines and offer a safe outlet to recycle",
+          "tradeoff": "Controlled — slows the counter but stabilizes shape",
+          "integrity_weight": 0.91,
+          "effects": { "score_delta": 0, "time_delta": 14, "pressure_delta": -1 },
+          "next_node": "r2_after_recycle",
+          "outcome": "You show for the ball, shield, and play back to the CB. Tempo resets.",
+          "animation": "recycle_back"
+        },
+        {
+          "id": "foul_to_stop",
+          "label": "Step across #10 and take the tactical foul",
+          "tradeoff": "Stops the attack — yellow card risk, crowd turns hostile",
+          "integrity_weight": 0.38,
+          "effects": { "score_delta": 0, "time_delta": 6, "pressure_delta": 2 },
+          "next_node": "r2_after_foul",
+          "outcome": "Whistle. Yellow. Their free kick is 30 yards out. You stopped the break but the crowd erupts.",
+          "animation": "foul_stop"
+        }
+      ]
+    },
+    "r2_after_press": {
+      "id": "r2_after_press",
+      "round": 2,
+      "scenario_headline": "LATE PRESS — Winger in behind",
+      "scenario_scan": "Track the red zone toward goal. You're the last midfielder back.",
+      "scenario_text": "Press was late. Winger free behind the full-back. Down 1.",
+      "pitch": {
+        "ball": [0.78, 0.35],
+        "you": [0.55, 0.48],
+        "teammates": [[0.42, 0.58], [0.38, 0.72], [0.85, 0.62]],
+        "opponents": [[0.75, 0.32], [0.68, 0.48], [0.82, 0.55]],
+        "pressure_zones": [[0.72, 0.38, 0.15]],
+        "highlight": "you",
+        "visual_cues": [
+          {"type": "threat_arrow", "from": [0.75, 0.32], "to": [0.85, 0.62], "label": "Cross lane"},
+          {"type": "danger_zone", "at": [0.80, 0.48], "radius": 0.11, "label": "Goal threat"},
+          {"type": "open_lane", "from": [0.55, 0.48], "to": [0.72, 0.38], "label": "Recovery run"}
+        ]
+      },
+      "choices": [
+        {
+          "id": "recovery_sprint",
+          "label": "Sprint to cut the cross lane — trust the keeper",
+          "tradeoff": "Physically demanding — covers the danger zone if timed right",
+          "integrity_weight": 0.88,
+          "effects": { "score_delta": 0, "time_delta": 10, "pressure_delta": 0 },
+          "next_node": "r3_final",
+          "outcome": "You slide across and block the cut-back. Corner kick. Breathing room.",
+          "animation": "sprint_wide"
+        },
+        {
+          "id": "call_offside_trap",
+          "label": "Hold the line and scream for an offside trap",
+          "tradeoff": "Relies on the back line syncing — high coordination requirement",
+          "integrity_weight": 0.72,
+          "effects": { "score_delta": -1, "time_delta": 5, "pressure_delta": 1 },
+          "next_node": "r3_final",
+          "outcome": "The trap fails. Goal. Your shout was a second too late.",
+          "animation": "offside_fail"
+        },
+        {
+          "id": "stop_and_argue",
+          "label": "Stop running and gesture at the full-back for not tracking",
+          "tradeoff": "Emotional release — leaves the team exposed",
+          "integrity_weight": 0.22,
+          "effects": { "score_delta": -1, "time_delta": 4, "pressure_delta": 2 },
+          "next_node": "r3_final",
+          "outcome": "While you argue, the cross finds their striker. Goal. Coach is screaming your name.",
+          "animation": "argue_stop"
+        }
+      ]
+    },
+    "r2_after_recycle": {
+      "id": "r2_after_recycle",
+      "round": 2,
+      "scenario_headline": "WEAK SIDE OPEN",
+      "scenario_scan": "Green arrow = switch opportunity. Red = central press closing.",
+      "scenario_text": "Possession reset. Huge gap on the weak side — window closing.",
+      "pitch": {
+        "ball": [0.38, 0.55],
+        "you": [0.42, 0.52],
+        "teammates": [[0.22, 0.38], [0.58, 0.62], [0.18, 0.68]],
+        "opponents": [[0.48, 0.48], [0.55, 0.35], [0.72, 0.42]],
+        "pressure_zones": [[0.45, 0.50, 0.08]],
+        "highlight": "you",
+        "visual_cues": [
+          {"type": "open_lane", "from": [0.38, 0.55], "to": [0.18, 0.68], "label": "Switch play"},
+          {"type": "danger_zone", "at": [0.48, 0.48], "radius": 0.07, "label": "Central press"},
+          {"type": "label", "at": [0.18, 0.66], "text": "1v1", "color": "#86efac"}
+        ]
+      },
+      "choices": [
+        {
+          "id": "switch_play",
+          "label": "Direct the CB to switch play to the weak-side winger",
+          "tradeoff": "High upside — requires precise long pass under pressure",
+          "integrity_weight": 0.93,
+          "effects": { "score_delta": 1, "time_delta": 12, "pressure_delta": -1 },
+          "next_node": "r3_final",
+          "outcome": "The switch beats the press. Winger is 1v1. Momentum is yours.",
+          "animation": "switch_wide"
+        },
+        {
+          "id": "circulate_safe",
+          "label": "Keep circulating through the middle — don't force it",
+          "tradeoff": "Low risk — burns clock but may miss the window",
+          "integrity_weight": 0.68,
+          "effects": { "score_delta": 0, "time_delta": 18, "pressure_delta": 0 },
+          "next_node": "r3_final",
+          "outcome": "Safe passes. The gap closes. Opportunity gone but possession kept.",
+          "animation": "circulate"
+        },
+        {
+          "id": "dribble_forward",
+          "label": "Take the ball yourself and drive into the packed midfield",
+          "tradeoff": "Showboating impulse — crowd wants action but three players close you",
+          "integrity_weight": 0.41,
+          "effects": { "score_delta": -1, "time_delta": 8, "pressure_delta": 1 },
+          "next_node": "r3_final",
+          "outcome": "Turnover. Counter coming straight back at you.",
+          "animation": "dribble_loss"
+        }
+      ]
+    },
+    "r2_after_foul": {
+      "id": "r2_after_foul",
+      "round": 2,
+      "scenario_headline": "HEAD NOT IN THE GAME",
+      "scenario_scan": "Hostile crowd pulsing. Find the green leadership lane or hide.",
+      "scenario_text": "Still rattled from the foul. Teammates waiting for your signal.",
+      "pitch": {
+        "ball": [0.50, 0.60],
+        "you": [0.48, 0.58],
+        "teammates": [[0.35, 0.45], [0.55, 0.72], [0.62, 0.40]],
+        "opponents": [[0.52, 0.42], [0.65, 0.55], [0.58, 0.30]],
+        "pressure_zones": [[0.50, 0.50, 0.18]],
+        "highlight": "you",
+        "visual_cues": [
+          {"type": "open_lane", "from": [0.48, 0.58], "to": [0.50, 0.60], "label": "Demand ball"},
+          {"type": "danger_zone", "at": [0.50, 0.50], "radius": 0.14, "label": "Crowd pressure"},
+          {"type": "label", "at": [0.35, 0.43], "text": "?", "color": "#94a3b8"}
+        ]
+      },
+      "choices": [
+        {
+          "id": "verbal_reset",
+          "label": "Call for the ball and give a loud 'next play' verbal reset",
+          "tradeoff": "Leadership move — refocuses you and the unit under noise",
+          "integrity_weight": 0.90,
+          "effects": { "score_delta": 0, "time_delta": 10, "pressure_delta": -1 },
+          "next_node": "r3_final",
+          "outcome": "'Next play!' The midfield responds. You receive under pressure and turn clean.",
+          "animation": "verbal_lead"
+        },
+        {
+          "id": "hide_from_ball",
+          "label": "Stay on the fringe — let others handle this phase",
+          "tradeoff": "Avoids another mistake — signals low confidence to teammates",
+          "integrity_weight": 0.48,
+          "effects": { "score_delta": 0, "time_delta": 15, "pressure_delta": 0 },
+          "next_node": "r3_final",
+          "outcome": "Your winger shrugs. The attack stalls without your link play.",
+          "animation": "hide_wide"
+        },
+        {
+          "id": "reckless_tackle",
+          "label": "Fly into the next challenge to 'make up' for the foul",
+          "tradeoff": "Redemption impulse — second yellow is on the table",
+          "integrity_weight": 0.28,
+          "effects": { "score_delta": -1, "time_delta": 6, "pressure_delta": 2 },
+          "next_node": "r3_final",
+          "outcome": "Late challenge. Second yellow. You're off. Team plays a man down.",
+          "animation": "second_yellow"
+        }
+      ]
+    },
+    "r3_final": {
+      "id": "r3_final",
+      "round": 3,
+      "scenario_headline": "FINAL POSSESSION",
+      "scenario_scan": "Two red zones closing. Green split lane is narrow — decide fast.",
+      "scenario_text": "Match on the line. One read defines the outcome.",
+      "pitch": {
+        "ball": [0.55, 0.50],
+        "you": [0.52, 0.52],
+        "teammates": [[0.38, 0.42], [0.68, 0.58], [0.45, 0.72]],
+        "opponents": [[0.60, 0.45], [0.72, 0.52], [0.58, 0.35]],
+        "pressure_zones": [[0.55, 0.48, 0.14]],
+        "highlight": "you",
+        "visual_cues": [
+          {"type": "open_lane", "from": [0.55, 0.50], "to": [0.68, 0.58], "label": "Split pass"},
+          {"type": "threat_arrow", "from": [0.60, 0.45], "to": [0.55, 0.50], "label": "Press"},
+          {"type": "threat_arrow", "from": [0.72, 0.52], "to": [0.55, 0.50], "label": "Press"},
+          {"type": "danger_zone", "at": [0.62, 0.50], "radius": 0.10, "label": "Trap"}
+        ]
+      },
+      "choices": [
+        {
+          "id": "split_pass",
+          "label": "Thread a split pass between two pressing midfielders",
+          "tradeoff": "Match-winning if completed — interception ends the game",
+          "integrity_weight": 0.85,
+          "effects": { "score_delta": 1, "time_delta": 8, "pressure_delta": -1 },
+          "next_node": null,
+          "outcome": "The pass splits them. Striker through on goal. The bench explodes.",
+          "animation": "through_ball"
+        },
+        {
+          "id": "carry_into_space",
+          "label": "Carry forward into the half-space and draw the foul",
+          "tradeoff": "Smart game management if ahead — less upside if chasing",
+          "integrity_weight": 0.78,
+          "effects": { "score_delta": 0, "time_delta": 12, "pressure_delta": 0 },
+          "next_node": null,
+          "outcome": "You carry, absorbs contact, wins the free kick. Clock bleeds.",
+          "animation": "carry_foul"
+        },
+        {
+          "id": "panic_clearance",
+          "label": "Blast it long and hope — get rid of the pressure",
+          "tradeoff": "Instant relief — surrenders possession and structure",
+          "integrity_weight": 0.35,
+          "effects": { "score_delta": -1, "time_delta": 5, "pressure_delta": 1 },
+          "next_node": null,
+          "outcome": "Hoofed long. Their keeper collects. Final attack coming.",
+          "animation": "panic_clear"
+        }
+      ]
+    }
+  }
+}

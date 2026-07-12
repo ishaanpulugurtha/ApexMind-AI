@@ -1,68 +1,62 @@
-# ApexMind AI
+# ApexMind AI v2
 
-Interactive, multi-sport cognitive composure simulation for competitive youth athletes. Built for the **Congressional App Challenge 2026**.
+Cognitive composure training for competitive youth athletes — **React + Phaser + FastAPI**.
 
-## Stack
-
-- **Python** + **Streamlit** (dashboard UI)
-- **OpenAI API** (JSON mode scenario generation)
-- **Supabase** (optional cloud session storage & leaderboard)
-- **Client-side JS countdown** (60fps, zero server lag)
-- **HTML5 audio stressors** (crowd noise scaled to pressure level)
-
-## Quick Start
-
-```bash
-python -m venv venv
-venv\Scripts\activate        # Windows
-pip install -r requirements.txt
-
-copy .env.example .env       # add OPENAI_API_KEY (optional)
-streamlit run app.py
-```
-
-## Scoring Model
-
-Composure is decomposed into two independent sub-metrics:
-
-| Metric | Formula | Meaning |
-|--------|---------|---------|
-| **Decision Velocity** | `(t_i / 10) × 100` | Fast reactions score high |
-| **Tactical Integrity** | `W_choice × 100` | Choice quality (C=100, B=70, A=40, Freeze=10) |
-| **Composure Baseline** | Average of both | Headline score |
+Built for the Congressional App Challenge 2026.
 
 ## Architecture
 
 ```
 ApexMind AI/
-├── app.py                          # Main Streamlit app
-├── config.py                       # Sports, positions, constants
-├── prompt_engine.py                # OpenAI JSON-mode + graceful fallback
-├── scoring.py                      # Velocity & integrity algorithms
-├── state_engine.py                 # Deterministic branching state machine
-├── storage.py                      # Supabase + local JSON fallback
-├── audio_stressors.py              # HTML5 crowd/whistle audio
-├── countdown_display.py            # Client-side JS countdown (html iframe)
-├── supabase_schema.sql             # Cloud DB setup script
-└── data/                           # Local sessions (gitignored)
+├── backend/           FastAPI — decision tree engine, scoring, Supabase, LLM debrief
+├── frontend/          React + Phaser 3 — match simulation UI
+├── legacy/            Archived Streamlit MVP (v1)
+└── data/              Local session JSON (gitignored)
 ```
 
-## Cloud Setup (Optional)
+## Quick Start
 
-1. Create a free [Supabase](https://supabase.com) project
-2. Run `supabase_schema.sql` in the SQL Editor
-3. Add `SUPABASE_URL` and `SUPABASE_ANON_KEY` to `.env`
+### 1. Backend (terminal 1)
 
-Without Supabase, sessions save locally to `data/sessions.json`.
+```bash
+pip install -r backend/requirements.txt
+# Copy .env with OPENAI_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY (optional)
 
-## Environment Variables
+uvicorn backend.main:app --reload --port 8001
+```
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `OPENAI_API_KEY` | No | Live LLM scenario generation |
-| `SUPABASE_URL` | No | Cloud session storage |
-| `SUPABASE_ANON_KEY` | No | Supabase anonymous key |
+### 2. Frontend (terminal 2)
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open **http://localhost:5173**
+
+## What's New in v2
+
+| Feature | Description |
+|---------|-------------|
+| **Decision Tree** | Curated Soccer CDM scenarios — no "Option C always wins" |
+| **Phaser Pitch** | Styled top-down pitch with players, pressure zones, animations |
+| **0 runtime LLM calls** | Gameplay is 100% deterministic; 1 optional debrief call after |
+| **Branching paths** | Your choice in R1 determines which R2 scenario you face |
+| **Visible consequences** | Score, clock, crowd update on-screen after every decision |
+| **Decision replay** | Full path log with integrity + velocity per round |
+
+## API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/config` | Sports, levels, catalysts |
+| POST | `/api/session/start` | Begin simulation |
+| POST | `/api/session/{id}/choice` | Submit decision |
+| POST | `/api/session/{id}/freeze` | Timeout penalty |
+| GET | `/api/session/{id}/report` | Analytics report |
+| POST | `/api/session/{id}/debrief` | AI debrief (1 LLM call) |
 
 ## Author
 
-Ishaan Pulugurtha — Congressional App Challenge 2026
+Ishaan Pulugurtha

@@ -16,8 +16,15 @@ venv/
 # Streamlit
 .streamlit/secrets.toml
 
-# Local session data (cloud via Supabase when configured)
-data/
+# Local session JSON only (not backend/data decision trees)
+/data/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Legacy Streamlit (archived)
+legacy/data/
 
 # IDE & OS
 .idea/

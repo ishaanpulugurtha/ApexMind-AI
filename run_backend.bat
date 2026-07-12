@@ -1,0 +1,3 @@
+@echo off
+echo Starting ApexMind AI Backend...
+uvicorn backend.main:app --reload --port 8001
