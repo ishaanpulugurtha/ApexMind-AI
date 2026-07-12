@@ -32,6 +32,13 @@ export default function SimulationPage() {
     return () => clearTimeout(t)
   }, [scenario?.node_id])
 
+  // Start decision timer only after scan — not during scan or outcome replay
+  useEffect(() => {
+    if (phase !== 'decide' || outcomeMsg) return
+    timerStartRef.current = Date.now()
+    setTimerKey((k) => k + 1)
+  }, [phase, scenario?.node_id, outcomeMsg])
+
   const handleOutcome = useCallback(async (result: Outcome) => {
     setOutcomeMsg(result.outcome)
     setAnimation(result.animation)
@@ -48,8 +55,6 @@ export default function SimulationPage() {
       setOutcomeMsg(null)
       setAnimation(null)
       expiredRef.current = false
-      timerStartRef.current = Date.now()
-      setTimerKey((k) => k + 1)
     }
   }, [nav, sessionId])
 
@@ -99,11 +104,12 @@ export default function SimulationPage() {
       <div className={`sim-layout ${phase === 'scan' ? 'scan-phase' : ''}`}>
         <div className="pitch-col">
           <div className="pitch-frame">
-            <PhaserPitch
-              pitch={scenario.pitch}
-              pressure={scenario.match_state.pressure}
-              animation={animation}
-            />
+          <PhaserPitch
+            pitch={scenario.pitch}
+            pressure={scenario.match_state.pressure}
+            animation={animation}
+            sceneKey={scenario.node_id}
+          />
             {phase === 'scan' && (
               <div className="scan-overlay">
                 <span className="scan-badge">SCAN PHASE</span>
@@ -118,7 +124,7 @@ export default function SimulationPage() {
           <DecisionTimer
             key={timerKey}
             seconds={timerSeconds}
-            frozen={locked}
+            frozen={locked || phase === 'scan' || !!outcomeMsg}
             onExpire={handleExpire}
           />
         </div>

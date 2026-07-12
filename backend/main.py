@@ -24,9 +24,10 @@ from backend.debrief import generate_debrief
 from backend.engine.decision_tree import (
     find_choice,
     get_node,
-    get_start_node,
+    pick_entry_node,
     get_tree,
     node_to_response,
+    resolve_next_node,
 )
 from backend.engine.match_state import apply_choice_effects, init_match_state
 from backend.engine.scoring import (
@@ -121,7 +122,7 @@ def start_session(req: StartSessionRequest):
         raise HTTPException(400, f"No scenario tree for {req.sport} / {req.position}")
 
     tree = get_tree(req.sport, req.position)
-    start = get_start_node(tree)
+    start = pick_entry_node(tree, req.catalyst)
     session_id = str(uuid.uuid4())[:12]
 
     onboarding = req.model_dump()
@@ -134,6 +135,7 @@ def start_session(req: StartSessionRequest):
         "level": req.level,
         "tree": tree,
         "current_node_id": start["id"],
+        "entry_node_id": start["id"],
         "match_state": match_state,
         "performance_data": [],
         "complete": False,
@@ -184,7 +186,7 @@ def submit_choice(session_id: str, req: ChoiceRequest):
         choice["outcome"],
     )
 
-    next_node_id = choice.get("next_node")
+    next_node_id = resolve_next_node(session["tree"], choice.get("next_node"))
     transition = session["match_state"]["transition_log"][-1]
 
     if next_node_id:
@@ -239,7 +241,7 @@ def submit_freeze(session_id: str, req: FreezeRequest):
 
     # Advance to first choice's next node as penalty path, or complete if round 3
     fallback = node["choices"][0] if node.get("choices") else {}
-    next_node_id = fallback.get("next_node")
+    next_node_id = resolve_next_node(session["tree"], fallback.get("next_node"))
     transition = session["match_state"]["transition_log"][-1]
 
     if next_node_id and node["round"] < TOTAL_ROUNDS:

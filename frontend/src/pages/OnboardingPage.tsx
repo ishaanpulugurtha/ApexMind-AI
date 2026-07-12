@@ -174,8 +174,11 @@ export default function OnboardingPage() {
         </div>
 
         <button className="primary-btn cta-btn" onClick={start} disabled={loading}>
-          {loading ? 'Loading scenario…' : 'Enter Match Simulation →'}
+          {loading ? 'Drawing scenario…' : 'Enter Match Simulation →'}
         </button>
+        <p className="footnote">
+          Random Round 1 scenario each run · 8 entry situations · 0 API calls during play
+        </p>
       </div>
     </div>
   )

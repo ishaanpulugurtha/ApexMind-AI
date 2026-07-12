@@ -9,6 +9,8 @@ export class PitchScene extends Phaser.Scene {
   private ball!: Phaser.GameObjects.Arc
   private youMarker!: Phaser.GameObjects.Arc
   private crowdOverlay!: Phaser.GameObjects.Rectangle
+  private pitchReady = false
+  private pendingUpdate: { pitch: PitchSetup; pressure: string } | null = null
 
   constructor() {
     super({ key: 'PitchScene' })
@@ -18,6 +20,13 @@ export class PitchScene extends Phaser.Scene {
     this.drawPitch()
     this.crowdOverlay = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0)
     this.crowdOverlay.setDepth(10)
+    this.pitchReady = true
+
+    if (this.pendingUpdate) {
+      const { pitch, pressure } = this.pendingUpdate
+      this.pendingUpdate = null
+      this.updatePitch(pitch, pressure)
+    }
   }
 
   private drawPitch() {
@@ -42,6 +51,10 @@ export class PitchScene extends Phaser.Scene {
   private toY(n: number) { return 30 + n * (H - 60) }
 
   updatePitch(pitch: PitchSetup, pressure: string) {
+    if (!this.pitchReady || !this.crowdOverlay) {
+      this.pendingUpdate = { pitch, pressure }
+      return
+    }
     this.clearDynamic()
 
     for (const cue of pitch.visual_cues || []) {
