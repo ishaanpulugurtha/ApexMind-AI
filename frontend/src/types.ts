@@ -13,6 +13,8 @@ export interface Config {
 export interface MatchState {
   time_left: number
   score_differential: string
+  your_score: number
+  their_score: number
   pressure: string
   catalyst: string
 }

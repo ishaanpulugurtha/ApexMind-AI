@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../api/client'
 import MetricRing from '../components/MetricRing'
+import { buildJudgeVerdict, buildVerdictSubline } from '../lib/reportVerdict'
 import { getChoiceIcon, integrityColor, integrityLabel } from '../lib/visuals'
 import type { Debrief, Report } from '../types'
 
@@ -45,6 +46,11 @@ export default function ReportPage() {
         </div>
         <div className="grade-badge">{grade}</div>
       </header>
+
+      <div className="judge-verdict-card">
+        <p className="judge-verdict-line">{buildJudgeVerdict(report)}</p>
+        <p className="judge-verdict-sub">{buildVerdictSubline(report)}</p>
+      </div>
 
       <div className="metrics-rings">
         <MetricRing value={report.composure_score} label="Composure" accent delay={0} />

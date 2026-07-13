@@ -31,6 +31,8 @@ class ChoiceOption(BaseModel):
 class MatchStateView(BaseModel):
     time_left: int
     score_differential: str
+    your_score: int = 1
+    their_score: int = 1
     pressure: str
     catalyst: str
 

@@ -1,4 +1,6 @@
-import { plainLanguageForPhase, scoreContextLine } from '../lib/pitchRead'
+import type { MatchState } from '../types'
+import { plainLanguageForPhase } from '../lib/pitchRead'
+import { stakesFromScore } from '../lib/scoreboard'
 
 interface Props {
   phase: 'scan' | 'gate' | 'decide'
@@ -6,7 +8,10 @@ interface Props {
   headline: string
   scanHint: string
   scenarioText?: string
-  scoreDifferential?: string
+  yourScore?: number
+  theirScore?: number
+  round?: number
+  totalRounds?: number
 }
 
 export default function PitchReadGuide({
@@ -15,14 +20,27 @@ export default function PitchReadGuide({
   headline,
   scanHint,
   scenarioText,
-  scoreDifferential,
+  yourScore = 1,
+  theirScore = 1,
+  round = 1,
+  totalRounds = 3,
 }: Props) {
-  const scoreLine = scoreDifferential ? scoreContextLine(scoreDifferential) : null
+  const miniState: MatchState = {
+    time_left: 60,
+    score_differential: 'Tied',
+    your_score: yourScore,
+    their_score: theirScore,
+    pressure: 'Medium',
+    catalyst: '',
+  }
+  const stakes = stakesFromScore(miniState, round, totalRounds)
 
   return (
     <div className="pitch-read-guide">
       <div className="scenario-headline">{headline}</div>
-      {scoreLine && <p className="score-context">{scoreLine}</p>}
+      <p className="score-context">
+        Score {yourScore}–{theirScore} · {stakes.split('·')[0].trim()}
+      </p>
       <p className="scenario-scan">{scanHint}</p>
       {scenarioText && <p className="scenario-sub">{scenarioText}</p>}
       <div className="read-guide-box">

@@ -5,9 +5,10 @@ interface Props {
   seconds: number
   onExpire: () => void
   frozen: boolean
+  hostile?: boolean
 }
 
-export default function DecisionTimer({ seconds, onExpire, frozen }: Props) {
+export default function DecisionTimer({ seconds, onExpire, frozen, hostile }: Props) {
   const [remaining, setRemaining] = useState(seconds)
 
   useEffect(() => {
@@ -38,8 +39,8 @@ export default function DecisionTimer({ seconds, onExpire, frozen }: Props) {
   const critical = remaining <= 3
 
   return (
-    <div className={`timer-card ${critical ? 'critical' : ''}`}>
-      <span className="timer-label">Decision Window</span>
+    <div className={`timer-card ${critical ? 'critical' : ''} ${hostile ? 'hostile-timer' : ''}`}>
+      <span className="timer-label">{hostile && critical ? '⚠ DECIDE NOW' : 'Decision Window'}</span>
       <span className="timer-value">{remaining.toFixed(1)}</span>
       <div className="timer-bar">
         <div className="timer-fill" style={{ width: `${pct}%` }} />
@@ -55,11 +56,6 @@ interface HUDProps {
 }
 
 export function MatchHUD({ matchState, round, totalRounds }: HUDProps) {
-  const formatTime = (s: number) => {
-    if (s >= 60) return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
-    return `${s}s`
-  }
-
   const pressureClass =
     matchState.pressure === 'Hostile'
       ? 'hostile'
@@ -68,18 +64,10 @@ export function MatchHUD({ matchState, round, totalRounds }: HUDProps) {
         : 'low'
 
   return (
-    <div className="match-hud">
+    <div className={`match-hud ${matchState.pressure === 'Hostile' ? 'hostile-hud' : ''}`}>
       <div className="hud-item">
         <span className="hud-label">Round</span>
         <span className="hud-value">{round}/{totalRounds}</span>
-      </div>
-      <div className="hud-item">
-        <span className="hud-label">Match Clock</span>
-        <span className="hud-value">{formatTime(matchState.time_left)}</span>
-      </div>
-      <div className="hud-item">
-        <span className="hud-label">Score</span>
-        <span className="hud-value">{matchState.score_differential}</span>
       </div>
       <div className={`hud-item pressure ${pressureClass}`}>
         <span className="hud-label">Crowd</span>

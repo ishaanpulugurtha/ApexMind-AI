@@ -1,12 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/client'
+import CinematicBeat from '../components/CinematicBeat'
+import DecisionDock from '../components/DecisionDock'
 import DecisionTimer, { MatchHUD } from '../components/MatchHUD'
+import OutcomeMoment from '../components/OutcomeMoment'
 import PitchKey from '../components/PitchKey'
 import PitchReadGuide from '../components/PitchReadGuide'
+import Scoreboard from '../components/Scoreboard'
 import SelectedReadCard from '../components/SelectedReadCard'
 import SituationChips from '../components/SituationChips'
+import StakesBanner from '../components/StakesBanner'
 import PhaserPitch from '../game/PhaserPitch'
+import { useCrowdPressure } from '../hooks/useCrowdPressure'
 import {
   SCAN_STEP_LABELS,
   SCAN_STEPS,
@@ -18,7 +24,16 @@ import {
 } from '../lib/pitchRead'
 import type { Outcome, Scenario } from '../types'
 
-type Phase = 'scan' | 'gate' | 'decide'
+type Phase = 'scan' | 'gate' | 'cinematic' | 'decide'
+
+interface OutcomeFlash {
+  outcome: string
+  animation: string
+  previousYour: number
+  previousTheir: number
+  newYour: number
+  newTheir: number
+}
 
 export default function SimulationPage() {
   const { sessionId } = useParams<{ sessionId: string }>()
@@ -32,7 +47,8 @@ export default function SimulationPage() {
   const [pitchEngaged, setPitchEngaged] = useState(false)
   const [gateMinimized, setGateMinimized] = useState(false)
   const [locked, setLocked] = useState(false)
-  const [outcomeMsg, setOutcomeMsg] = useState<string | null>(null)
+  const [outcomeFlash, setOutcomeFlash] = useState<OutcomeFlash | null>(null)
+  const [pendingResult, setPendingResult] = useState<Outcome | null>(null)
   const [animation, setAnimation] = useState<string | null>(null)
   const [timerKey, setTimerKey] = useState(0)
   const [phase, setPhase] = useState<Phase>('scan')
@@ -75,6 +91,9 @@ export default function SimulationPage() {
         })?.label ?? null
       : selectedCueLabel
 
+  const pressureActive = phase === 'cinematic' || phase === 'decide' || !!outcomeFlash
+  useCrowdPressure(scenario?.match_state.pressure ?? 'Low', pressureActive)
+
   useEffect(() => {
     setPhase('scan')
     setScanStepIndex(0)
@@ -82,6 +101,8 @@ export default function SimulationPage() {
     setSelectedId(null)
     setSelectedCueLabel(null)
     setPitchEngaged(false)
+    setOutcomeFlash(null)
+    setPendingResult(null)
 
     const t1 = setTimeout(() => setScanStepIndex(1), SCAN_STEP_MS[0])
     const t2 = setTimeout(() => setScanStepIndex(2), SCAN_STEP_MS[0] + SCAN_STEP_MS[1])
@@ -97,21 +118,63 @@ export default function SimulationPage() {
   }, [scenario?.node_id])
 
   useEffect(() => {
-    if (phase !== 'decide' || outcomeMsg) return
+    if (phase !== 'decide' || outcomeFlash) return
     timerStartRef.current = Date.now()
     setTimerKey((k) => k + 1)
-  }, [phase, scenario?.node_id, outcomeMsg])
+  }, [phase, scenario?.node_id, outcomeFlash])
+
+  const beginDecide = () => setPhase('cinematic')
+  const enterDecide = () => setPhase('decide')
+
+  const finishOutcome = useCallback(
+    (result: Outcome) => {
+      if (result.complete) {
+        nav(`/report/${sessionId}`)
+        return
+      }
+      if (result.next_scenario) {
+        setScenario(result.next_scenario)
+        setSelectedId(null)
+        setSelectedCueLabel(null)
+        setPitchEngaged(false)
+        setGateMinimized(false)
+        setLocked(false)
+        setOutcomeFlash(null)
+        setPendingResult(null)
+        setAnimation(null)
+        expiredRef.current = false
+      }
+    },
+    [nav, sessionId],
+  )
+
+  const handleOutcomeMomentDone = useCallback(() => {
+    if (pendingResult) finishOutcome(pendingResult)
+  }, [pendingResult, finishOutcome])
+
+  const showOutcome = useCallback((result: Outcome, prevYour: number, prevTheir: number) => {
+    setAnimation(result.animation)
+    setOutcomeFlash({
+      outcome: result.outcome,
+      animation: result.animation,
+      previousYour: prevYour,
+      previousTheir: prevTheir,
+      newYour: result.match_state.your_score ?? prevYour,
+      newTheir: result.match_state.their_score ?? prevTheir,
+    })
+    setPendingResult(result)
+  }, [])
 
   const handlePitchCueSelect = useCallback(
     (cueLabel: string) => {
-      if (phase !== 'decide' || locked) return
+      if (phase !== 'decide' || locked || outcomeFlash) return
       const choiceId = cueToChoiceMap.get(cueLabel)
       if (!choiceId) return
       setPitchEngaged(true)
       setSelectedCueLabel(cueLabel)
       setSelectedId(choiceId)
     },
-    [phase, locked, cueToChoiceMap],
+    [phase, locked, cueToChoiceMap, outcomeFlash],
   )
 
   const handleChangeRead = () => {
@@ -120,50 +183,32 @@ export default function SimulationPage() {
     setSelectedCueLabel(null)
   }
 
-  const handleOutcome = useCallback(async (result: Outcome) => {
-    setOutcomeMsg(result.outcome)
-    setAnimation(result.animation)
-    await new Promise((r) => setTimeout(r, 1800))
-
-    if (result.complete) {
-      nav(`/report/${sessionId}`)
-      return
-    }
-    if (result.next_scenario) {
-      setScenario(result.next_scenario)
-      setSelectedId(null)
-      setSelectedCueLabel(null)
-      setPitchEngaged(false)
-      setGateMinimized(false)
-      setLocked(false)
-      setOutcomeMsg(null)
-      setAnimation(null)
-      expiredRef.current = false
-    }
-  }, [nav, sessionId])
-
   const handleExpire = useCallback(async () => {
-    if (expiredRef.current || locked || !sessionId || phase !== 'decide') return
+    if (expiredRef.current || locked || !sessionId || phase !== 'decide' || outcomeFlash) return
     expiredRef.current = true
     setLocked(true)
+    const prevYour = scenario?.match_state.your_score ?? 1
+    const prevTheir = scenario?.match_state.their_score ?? 1
     try {
       const result = await api.submitFreeze(sessionId)
-      await handleOutcome(result)
+      showOutcome(result, prevYour, prevTheir)
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Freeze failed')
       setLocked(false)
       expiredRef.current = false
     }
-  }, [locked, sessionId, handleOutcome, phase])
+  }, [locked, sessionId, phase, outcomeFlash, scenario, showOutcome])
 
   const lockChoice = async () => {
-    if (!selectedId || !sessionId || locked || phase !== 'decide') return
+    if (!selectedId || !sessionId || locked || phase !== 'decide' || outcomeFlash) return
     setLocked(true)
+    const prevYour = scenario?.match_state.your_score ?? 1
+    const prevTheir = scenario?.match_state.their_score ?? 1
     const elapsed = (Date.now() - timerStartRef.current) / 1000
     const timeRemaining = Math.max(0, timerSeconds - elapsed)
     try {
       const result = await api.submitChoice(sessionId, selectedId, timeRemaining)
-      await handleOutcome(result)
+      showOutcome(result, prevYour, prevTheir)
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Choice failed')
       setLocked(false)
@@ -177,18 +222,33 @@ export default function SimulationPage() {
   const headline = scenario.scenario_headline || `Round ${scenario.round}`
   const scanHint = scenario.scenario_scan || 'Read the pitch before the options appear.'
   const scanFocus = phase === 'scan' ? SCAN_STEPS[scanStepIndex] : null
+  const inPlay = phase === 'decide' && !outcomeFlash
 
   return (
-    <div className="page simulation-page">
+    <div className={`page simulation-page ${scenario.match_state.pressure === 'Hostile' ? 'hostile-session' : ''}`}>
+      <Scoreboard
+        matchState={scenario.match_state}
+        round={scenario.round}
+        totalRounds={scenario.total_rounds}
+      />
+
       <MatchHUD
         matchState={scenario.match_state}
         round={scenario.round}
         totalRounds={scenario.total_rounds}
       />
 
+      <StakesBanner
+        headline={headline}
+        matchState={scenario.match_state}
+        round={scenario.round}
+        totalRounds={scenario.total_rounds}
+        active={inPlay}
+      />
+
       <div className={`sim-layout ${phase === 'scan' ? 'scan-phase' : ''}`}>
         <div className="pitch-col">
-          <div className="pitch-frame">
+          <div className={`pitch-frame ${phase === 'cinematic' ? 'cinematic-active' : ''}`}>
             <PhaserPitch
               pitch={scenario.pitch}
               pressure={scenario.match_state.pressure}
@@ -196,8 +256,8 @@ export default function SimulationPage() {
               sceneKey={scenario.node_id}
               scanFocus={scanFocus}
               selectedCueLabel={selectedCueLabel}
-              pitchInteractive={phase === 'decide' && !locked && !outcomeMsg}
-              showTapHints={phase === 'decide' && !locked && !outcomeMsg}
+              pitchInteractive={inPlay && !locked}
+              showTapHints={inPlay && !locked}
               tapOptions={tapOptions}
               onCueSelect={handlePitchCueSelect}
             />
@@ -213,13 +273,13 @@ export default function SimulationPage() {
               <div className="gate-banner">
                 <div className="gate-banner-text">
                   <span className="scan-badge">SCAN COMPLETE</span>
-                  <p>Keep looking at the pitch until you see the full picture.</p>
+                  <p>Study the pitch — arrows show threat, space, and danger. Then you'll pick an action.</p>
                 </div>
                 <div className="gate-banner-actions">
                   <button type="button" className="ghost-btn" onClick={() => setGateMinimized(true)}>
                     Keep scanning ↓
                   </button>
-                  <button type="button" className="primary-btn gate-btn" onClick={() => setPhase('decide')}>
+                  <button type="button" className="primary-btn gate-btn" onClick={beginDecide}>
                     Ready — start decision →
                   </button>
                 </div>
@@ -229,37 +289,56 @@ export default function SimulationPage() {
             {phase === 'gate' && gateMinimized && (
               <div className="gate-minibar">
                 <span>Still scanning the pitch?</span>
-                <button type="button" className="primary-btn gate-btn-sm" onClick={() => setPhase('decide')}>
+                <button type="button" className="primary-btn gate-btn-sm" onClick={beginDecide}>
                   Ready to decide →
                 </button>
               </div>
             )}
 
-            {phase === 'decide' && !selectedId && !outcomeMsg && (
-              <div className="pitch-tap-bar">
-                Each labeled button is a <strong>different action</strong> — green safest, orange press, red risky
-              </div>
+            {phase === 'cinematic' && (
+              <CinematicBeat
+                headline={headline}
+                matchState={scenario.match_state}
+                round={scenario.round}
+                totalRounds={scenario.total_rounds}
+                onComplete={enterDecide}
+              />
             )}
           </div>
 
-          <PitchKey />
+          {inPlay && (
+            <DecisionDock
+              options={tapOptions}
+              selectedCueLabel={selectedCueLabel}
+              onSelect={handlePitchCueSelect}
+              disabled={locked}
+              pitchGated={!pitchEngaged}
+            />
+          )}
+
+          {phase !== 'cinematic' && phase !== 'decide' && <PitchKey />}
+
+          {phase === 'decide' && !pitchEngaged && (
+            <p className="read-only-hint">Tap a zone on the pitch to commit your read.</p>
+          )}
 
           <SituationChips
             chips={situationChips}
             activeLabel={activeChipLabel}
             dimmed={phase === 'scan'}
-            interactive={phase === 'decide' && !locked && !outcomeMsg}
+            interactive={inPlay && !locked}
             onSelect={handlePitchCueSelect}
           />
 
           <DecisionTimer
             key={timerKey}
             seconds={timerSeconds}
-            frozen={locked || phase !== 'decide' || !!outcomeMsg}
+            frozen={locked || phase !== 'decide' || !!outcomeFlash}
             onExpire={handleExpire}
+            hostile={scenario.match_state.pressure === 'Hostile'}
           />
 
-          {phase === 'decide' && pitchEngaged && (
+          {inPlay && pitchEngaged && (
             <button
               className="primary-btn lock-btn lock-btn-pitch"
               disabled={!selectedId || locked}
@@ -271,16 +350,17 @@ export default function SimulationPage() {
         </div>
 
         <div className="decision-col">
-          {outcomeMsg && <div className="outcome-banner">{outcomeMsg}</div>}
-
           {!pitchEngaged ? (
             <PitchReadGuide
-              phase={phase}
+              phase={phase === 'cinematic' ? 'gate' : phase === 'decide' ? 'decide' : phase}
               pitchEngaged={pitchEngaged}
               headline={headline}
               scanHint={scanHint}
               scenarioText={scenario.scenario_text}
-              scoreDifferential={scenario.match_state.score_differential}
+              yourScore={scenario.match_state.your_score}
+              theirScore={scenario.match_state.their_score}
+              round={scenario.round}
+              totalRounds={scenario.total_rounds}
             />
           ) : selectedChoice ? (
             <SelectedReadCard
@@ -292,6 +372,18 @@ export default function SimulationPage() {
           ) : null}
         </div>
       </div>
+
+      {outcomeFlash && (
+        <OutcomeMoment
+          outcome={outcomeFlash.outcome}
+          animation={outcomeFlash.animation}
+          previousYour={outcomeFlash.previousYour}
+          previousTheir={outcomeFlash.previousTheir}
+          newYour={outcomeFlash.newYour}
+          newTheir={outcomeFlash.newTheir}
+          onDone={handleOutcomeMomentDone}
+        />
+      )}
     </div>
   )
 }

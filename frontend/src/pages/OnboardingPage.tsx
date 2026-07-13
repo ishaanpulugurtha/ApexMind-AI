@@ -3,10 +3,18 @@ import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import type { Config, StartParams } from '../types'
 
+const SCORE_PREVIEW: Record<string, string> = {
+  'Down by 2': '0 – 2',
+  'Down by 1': '0 – 1',
+  Tied: '1 – 1',
+  'Up by 1': '2 – 1',
+  'Up by 2': '3 – 1',
+}
+
 const FEATURES = [
-  { icon: '👁️', title: 'Visual Scan Training', desc: 'Read arrows & zones on the pitch — not paragraphs.' },
-  { icon: '🌳', title: 'Branching Decisions', desc: 'Round 1 choice changes your Round 2 scenario.' },
-  { icon: '⚡', title: 'Zero Token Gameplay', desc: 'Deterministic engine — AI debrief only after.' },
+  { icon: '⏱️', title: 'Live Decision Window', desc: '10 seconds. Hostile crowd. Real consequences.' },
+  { icon: '🌳', title: 'Branching Scenarios', desc: 'Your Round 1 read changes what hits you in Round 3.' },
+  { icon: '📊', title: 'Composure Report', desc: 'Speed, discipline, and whether you rushed the risky read.' },
 ]
 
 export default function OnboardingPage() {
@@ -50,8 +58,13 @@ export default function OnboardingPage() {
           <p className="eyebrow">Congressional App Challenge 2026</p>
           <h1>ApexMind AI</h1>
           <p className="hero-tagline">
-            Train composure under match pressure — scan the pitch, make the read, live with the consequence.
+            Train the 3 seconds between panic and action — built for athletes who've felt a match
+            slip after one rushed decision.
           </p>
+          <blockquote className="founder-hook">
+            “I've watched teammates spiral after a single mistake — the next play is where composure
+            wins or dies. ApexMind trains that moment.”
+          </blockquote>
           <div className="feature-pills">
             {FEATURES.map((f) => (
               <div key={f.title} className="feature-pill">
@@ -143,7 +156,8 @@ export default function OnboardingPage() {
                     className={params.score_differential === s ? 'pill active' : 'pill'}
                     onClick={() => setParams({ ...params, score_differential: s })}
                   >
-                    {s}
+                    {SCORE_PREVIEW[s] ?? s}
+                    <span className="pill-sub">{s}</span>
                   </button>
                 ))}
               </div>

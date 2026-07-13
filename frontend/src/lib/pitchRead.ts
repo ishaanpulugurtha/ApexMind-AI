@@ -187,9 +187,9 @@ export function plainLanguageForPhase(
     return 'Study the pitch until the picture is clear. Minimize the banner to keep looking.'
   }
   if (!pitchEngaged) {
-    return 'Each button on the pitch is a different action. Green = safest read. Orange = engage. Red = risky. Tap one.'
+    return 'Read the pitch for threats and space. Pick one of the three action buttons below the field.'
   }
-  return 'Tap a different button on the pitch to change your action, then lock it in.'
+  return 'Change your action below, then lock it in.'
 }
 
 export function scoreContextLine(score: string): string {

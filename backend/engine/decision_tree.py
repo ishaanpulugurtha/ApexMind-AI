@@ -113,6 +113,8 @@ def node_to_response(node: dict, match_state: dict) -> dict:
         "match_state": {
             "time_left": match_state["time_left"],
             "score_differential": match_state["score_differential"],
+            "your_score": match_state.get("your_score", 1),
+            "their_score": match_state.get("their_score", 1),
             "pressure": match_state["pressure"],
             "catalyst": match_state["catalyst"],
         },

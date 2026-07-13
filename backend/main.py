@@ -59,6 +59,8 @@ def _match_state_view(state: dict) -> MatchStateView:
     return MatchStateView(
         time_left=state["time_left"],
         score_differential=state["score_differential"],
+        your_score=state.get("your_score", 1),
+        their_score=state.get("their_score", 1),
         pressure=state["pressure"],
         catalyst=state["catalyst"],
     )

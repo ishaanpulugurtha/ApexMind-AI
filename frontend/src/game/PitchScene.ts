@@ -16,11 +16,12 @@ const PAD_Y = 24
 const PLAY_W = W - PAD_X * 2
 const PLAY_H = H - PAD_Y * 2
 
+/** Spread hit zones away from center to avoid stacking */
 const TAP_SPREAD = [
-  { x: -58, y: -42 },
-  { x: 58, y: -28 },
-  { x: 0, y: 48 },
-  { x: -48, y: 36 },
+  { x: -70, y: -50 },
+  { x: 70, y: -35 },
+  { x: 0, y: 60 },
+  { x: -55, y: 45 },
 ]
 
 function cueKey(cue: VisualCue): string {
@@ -314,7 +315,7 @@ export class PitchScene extends Phaser.Scene {
 
       const strokeColor =
         cue.focus === 'space' ? 0x4ade80 : cue.focus === 'threat' ? 0xfb923c : 0xef4444
-      const ring = this.add.circle(hx, hy, isSelected ? 38 : 34, 0xffffff, 0)
+      const ring = this.add.circle(hx, hy, isSelected ? 58 : 54, 0xffffff, 0)
       ring.setStrokeStyle(isSelected ? 4 : 2, strokeColor, isSelected || isHover ? 1 : 0.7)
       ring.setDepth(11)
       this.track(ring)
@@ -330,16 +331,15 @@ export class PitchScene extends Phaser.Scene {
         })
       }
 
-      const bgColor =
-        cue.focus === 'space' ? '#14532d' : cue.focus === 'threat' ? '#7c2d12' : '#450a0a'
+      // Neutral dark background — no color hint for risk level
       const lbl = this.add
         .text(hx, hy, cue.actionShort, {
-          fontSize: isSelected ? '12px' : '11px',
+          fontSize: isSelected ? '13px' : '11px',
           color: '#ffffff',
           fontFamily: 'Inter, sans-serif',
           fontStyle: 'bold',
-          backgroundColor: bgColor,
-          padding: { x: 6, y: 4 },
+          backgroundColor: '#0f172a',
+          padding: { x: 7, y: 4 },
           align: 'center',
         })
         .setOrigin(0.5)
@@ -511,9 +511,10 @@ export class PitchScene extends Phaser.Scene {
           const hitY = this.toY(anchor[1]) + spread.y
           const hitColor =
             cue.type === 'open_lane' ? 0x4ade80 : cue.type === 'threat_arrow' ? 0xfb923c : 0xef4444
-          const hit = this.add.circle(hitX, hitY, 40, hitColor, 0.08)
+          // Larger hit zone (56px) — easier to tap, clearly visible
+          const hit = this.add.circle(hitX, hitY, 56, hitColor, 0.15)
           hit.setDepth(9)
-          hit.setStrokeStyle(1, hitColor, 0.4)
+          hit.setStrokeStyle(2, hitColor, 0.65)
           this.track(hit)
           entry.hitZone = hit
         }

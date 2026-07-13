@@ -41,7 +41,7 @@ export default function PitchKey() {
         </div>
         <div className="key-item">
           <span className="key-swatch tap" />
-          <span><strong>Action buttons</strong> — each shows what you will do (↩ Recycle, ⚡ Press, etc.).</span>
+          <span><strong>Action buttons</strong> — below the pitch (green safe, orange press, red risky).</span>
         </div>
       </div>
     </div>
