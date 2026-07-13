@@ -13,19 +13,19 @@ export default function PitchKey() {
         </div>
         <div className="key-item">
           <span className="key-swatch you" />
-          <span><strong>YOU</strong> — yellow dot.</span>
+          <span><strong>YOU</strong> — gold token (wedge shows facing).</span>
         </div>
         <div className="key-item">
           <span className="key-swatch ball" />
-          <span><strong>BALL</strong> — white dot.</span>
+          <span><strong>BALL</strong> — white token.</span>
         </div>
         <div className="key-item">
           <span className="key-swatch ally" />
-          <span><strong>Allies</strong> — blue dots.</span>
+          <span><strong>Allies</strong> — blue tokens.</span>
         </div>
         <div className="key-item">
           <span className="key-swatch opp" />
-          <span><strong>Opponents</strong> — red dots.</span>
+          <span><strong>Opponents</strong> — red tokens. Jersey tags (#10, GK, W) on pitch.</span>
         </div>
         <div className="key-item">
           <span className="key-swatch lane" />

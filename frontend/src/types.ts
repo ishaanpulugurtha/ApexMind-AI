@@ -32,6 +32,8 @@ export interface VisualCue {
   label?: string
   text?: string
   color?: string
+  /** Links this cue to a decision choice — enables correct tap mapping. */
+  choice_id?: string
 }
 
 export interface PitchSetup {

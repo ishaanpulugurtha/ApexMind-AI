@@ -1,4 +1,5 @@
 import type { ChoiceOption, VisualCue } from '../types'
+import { tappableCues } from './pitchCues'
 
 export type ScanFocus = 'threat' | 'danger' | 'space' | 'you'
 
@@ -29,10 +30,9 @@ export interface TapOption {
   actionLine: string
 }
 
-
 const CUE_ORDER: VisualCue['type'][] = ['open_lane', 'threat_arrow', 'danger_zone']
 
-function actionableCues(cues: VisualCue[] = []) {
+function legacyActionableCues(cues: VisualCue[] = []) {
   return CUE_ORDER.map((type) => cues.find((c) => c.type === type && c.label)).filter(
     (c): c is VisualCue => !!c,
   )
@@ -59,18 +59,52 @@ export function actionShortForChoice(choice: ChoiceOption): string {
     check_back_slow: '↩ Hold up',
     delay_run: '🛡️ Delay',
     one_touch_release: '⚡ Release',
+    aerial_challenge: '💪 Win duel',
+    cushion_header: '↩ Cushion',
+    pull_out_duel: '👻 Bail',
+    shield_turn: '🔄 Turn out',
+    snap_at_coach: '🗣️ Argue',
+    clip_diagonal: '↗ Diagonal',
+    hold_shape: '🛡️ Hold line',
+    dive_in_early: '💥 Dive in',
+    flick_on: '↗ Flick on',
+    body_block: '🛡️ Shield',
+    drop_deep: '👻 Drop off',
+    step_tackle: '⚡ Tackle',
+    stand_guess: '🎲 Guess',
+    chest_control: '⚡ Play wide',
+    nod_down: '↩ Nod back',
+    miscontrol_panic: '💥 Blind flick',
+    call_offside_trap: '📣 Offside trap',
+    stop_and_argue: '🗣️ Argue',
   }
   if (shortcuts[choice.id]) return shortcuts[choice.id]
   const first = choice.label.split('—')[0].trim()
   return first.length > 24 ? `${first.slice(0, 22)}…` : first
 }
 
-/**
- * Map cues to choices by TYPE — green lane = choice 1, red arrow = choice 2, red zone = choice 3.
- * Matches how players read the pitch.
- */
+/** Map cues to choices via choice_id when authored; else legacy type order. */
 export function buildTapOptions(choices: ChoiceOption[], cues: VisualCue[] = []): TapOption[] {
-  const typedCues = actionableCues(cues)
+  const tappable = tappableCues(cues)
+  const withChoiceId = tappable.filter((c) => c.choice_id)
+
+  if (withChoiceId.length > 0) {
+    return withChoiceId
+      .map((cue) => {
+        const choice = choices.find((ch) => ch.id === cue.choice_id)
+        if (!choice || !cue.label) return null
+        return {
+          choiceId: choice.id,
+          cueLabel: cue.label,
+          cueType: cue.type,
+          actionShort: actionShortForChoice(choice),
+          actionLine: choice.label,
+        }
+      })
+      .filter((o): o is TapOption => o !== null)
+  }
+
+  const typedCues = legacyActionableCues(cues)
   return typedCues
     .map((cue, i) => {
       const choice = choices[i]
@@ -115,7 +149,7 @@ export function extractSituationChips(
 ): SituationChip[] {
   const tapOpts = buildTapOptions(choices, cues)
   const chips: SituationChip[] = []
-  for (const cue of actionableCues(cues)) {
+  for (const cue of tappableCues(cues)) {
     if (!cue.label) continue
     const variant =
       cue.type === 'open_lane'
@@ -153,7 +187,7 @@ export function plainLanguageForPhase(
     return 'Study the pitch until the picture is clear. Minimize the banner to keep looking.'
   }
   if (!pitchEngaged) {
-    return 'Each button on the pitch is a different action. Green = safest read. Red arrow = engage. Red circle = risky. Tap one.'
+    return 'Each button on the pitch is a different action. Green = safest read. Orange = engage. Red = risky. Tap one.'
   }
   return 'Tap a different button on the pitch to change your action, then lock it in.'
 }

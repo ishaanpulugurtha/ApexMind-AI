@@ -33,14 +33,14 @@
       "pitch": {
         "ball": [0.52, 0.48],
         "you": [0.48, 0.52],
-        "teammates": [[0.35, 0.62], [0.62, 0.38], [0.28, 0.45]],
+        "teammates": [[0.35, 0.62], [0.22, 0.40], [0.28, 0.45]],
         "opponents": [[0.58, 0.42], [0.72, 0.55], [0.55, 0.28]],
         "pressure_zones": [[0.55, 0.45, 0.12]],
         "highlight": "you",
         "visual_cues": [
-          {"type": "threat_arrow", "from": [0.58, 0.42], "to": [0.72, 0.55], "label": "Counter path"},
-          {"type": "danger_zone", "at": [0.62, 0.38], "radius": 0.09, "label": "Gap behind CB"},
-          {"type": "open_lane", "from": [0.48, 0.52], "to": [0.35, 0.62], "label": "Recycle here"},
+          {"type": "threat_arrow", "from": [0.58, 0.42], "to": [0.72, 0.55], "label": "Counter path", "choice_id": "immediate_press"},
+          {"type": "danger_zone", "at": [0.28, 0.42], "radius": 0.09, "label": "Gap behind CB", "choice_id": "foul_to_stop"},
+          {"type": "open_lane", "from": [0.48, 0.52], "to": [0.35, 0.62], "label": "Recycle here", "choice_id": "shield_recycle"},
           {"type": "label", "at": [0.58, 0.40], "text": "#10", "color": "#fca5a5"}
         ]
       },
@@ -90,9 +90,9 @@
         "opponents": [[0.54, 0.46], [0.68, 0.38], [0.40, 0.30]],
         "pressure_zones": [[0.50, 0.48, 0.10]],
         "visual_cues": [
-          {"type": "danger_zone", "at": [0.50, 0.48], "radius": 0.10, "label": "50/50 duel"},
-          {"type": "open_lane", "from": [0.50, 0.50], "to": [0.30, 0.40], "label": "Redirect wide"},
-          {"type": "threat_arrow", "from": [0.54, 0.46], "to": [0.68, 0.38], "label": "#8 closing"},
+          {"type": "danger_zone", "at": [0.50, 0.48], "radius": 0.10, "label": "50/50 duel", "choice_id": "aerial_challenge"},
+          {"type": "open_lane", "from": [0.50, 0.50], "to": [0.30, 0.40], "label": "Redirect wide", "choice_id": "cushion_header"},
+          {"type": "threat_arrow", "from": [0.54, 0.46], "to": [0.68, 0.38], "label": "#8 closing", "choice_id": "pull_out_duel"},
           {"type": "label", "at": [0.54, 0.44], "text": "#8", "color": "#fca5a5"}
         ]
       },
@@ -143,8 +143,9 @@
         "pressure_zones": [[0.50, 0.48, 0.11]],
         "visual_cues": [
           {"type": "threat_arrow", "from": [0.52, 0.50], "to": [0.44, 0.55], "label": "Press"},
-          {"type": "threat_arrow", "from": [0.60, 0.42], "to": [0.44, 0.55], "label": "Press"},
-          {"type": "open_lane", "from": [0.44, 0.55], "to": [0.58, 0.38], "label": "One-touch out"},
+          {"type": "threat_arrow", "from": [0.60, 0.42], "to": [0.44, 0.55], "label": "Press", "choice_id": "shield_turn"},
+          {"type": "open_lane", "from": [0.44, 0.55], "to": [0.58, 0.38], "label": "One-touch out", "choice_id": "one_touch_release"},
+          {"type": "danger_zone", "at": [0.44, 0.55], "radius": 0.07, "label": "Mental trap", "choice_id": "snap_at_coach"},
           {"type": "label", "at": [0.12, 0.85], "text": "COACH", "color": "#fbbf24"}
         ]
       },
@@ -194,9 +195,9 @@
         "opponents": [[0.48, 0.52], [0.38, 0.48], [0.58, 0.42]],
         "pressure_zones": [[0.45, 0.52, 0.09]],
         "visual_cues": [
-          {"type": "open_lane", "from": [0.40, 0.58], "to": [0.55, 0.72], "label": "Half-space"},
-          {"type": "open_lane", "from": [0.40, 0.58], "to": [0.62, 0.35], "label": "Overlap"},
-          {"type": "threat_arrow", "from": [0.48, 0.52], "to": [0.40, 0.58], "label": "CB steps"},
+          {"type": "open_lane", "from": [0.40, 0.58], "to": [0.55, 0.72], "label": "Half-space", "choice_id": "drive_half_space"},
+          {"type": "open_lane", "from": [0.40, 0.58], "to": [0.62, 0.35], "label": "Overlap", "choice_id": "clip_diagonal"},
+          {"type": "threat_arrow", "from": [0.48, 0.52], "to": [0.40, 0.58], "label": "CB steps", "choice_id": "check_back_slow"},
           {"type": "label", "at": [0.55, 0.70], "text": "FB", "color": "#86efac"}
         ]
       },
@@ -246,9 +247,9 @@
         "opponents": [[0.82, 0.50], [0.70, 0.40], [0.70, 0.60]],
         "pressure_zones": [[0.72, 0.50, 0.12]],
         "visual_cues": [
-          {"type": "threat_arrow", "from": [0.82, 0.50], "to": [0.70, 0.40], "label": "Long ball"},
-          {"type": "open_lane", "from": [0.62, 0.48], "to": [0.70, 0.40], "label": "Cut lane"},
-          {"type": "danger_zone", "at": [0.72, 0.48], "radius": 0.10, "label": "Trap risk"},
+          {"type": "threat_arrow", "from": [0.82, 0.50], "to": [0.70, 0.40], "label": "Long ball", "choice_id": "hold_shape"},
+          {"type": "open_lane", "from": [0.62, 0.48], "to": [0.70, 0.40], "label": "Cut lane", "choice_id": "trigger_press"},
+          {"type": "danger_zone", "at": [0.72, 0.48], "radius": 0.10, "label": "Trap risk", "choice_id": "dive_in_early"},
           {"type": "label", "at": [0.82, 0.48], "text": "GK", "color": "#fca5a5"}
         ]
       },
@@ -298,9 +299,9 @@
         "opponents": [[0.50, 0.44], [0.62, 0.50], [0.55, 0.28]],
         "pressure_zones": [[0.48, 0.44, 0.09]],
         "visual_cues": [
-          {"type": "danger_zone", "at": [0.48, 0.44], "radius": 0.09, "label": "Drop zone"},
-          {"type": "open_lane", "from": [0.48, 0.44], "to": [0.32, 0.55], "label": "Flick target"},
-          {"type": "threat_arrow", "from": [0.50, 0.44], "to": [0.48, 0.44], "label": "#6 closes"},
+          {"type": "danger_zone", "at": [0.48, 0.44], "radius": 0.09, "label": "Drop zone", "choice_id": "body_block"},
+          {"type": "open_lane", "from": [0.48, 0.44], "to": [0.32, 0.55], "label": "Flick target", "choice_id": "flick_on"},
+          {"type": "threat_arrow", "from": [0.50, 0.44], "to": [0.48, 0.44], "label": "#6 closes", "choice_id": "drop_deep"},
           {"type": "label", "at": [0.50, 0.42], "text": "#6", "color": "#fca5a5"}
         ]
       },
@@ -350,9 +351,9 @@
         "opponents": [[0.62, 0.46], [0.72, 0.42], [0.55, 0.32]],
         "pressure_zones": [[0.58, 0.48, 0.11]],
         "visual_cues": [
-          {"type": "threat_arrow", "from": [0.62, 0.46], "to": [0.78, 0.40], "label": "#9 run"},
-          {"type": "open_lane", "from": [0.50, 0.52], "to": [0.58, 0.48], "label": "Delay angle"},
-          {"type": "danger_zone", "at": [0.65, 0.44], "radius": 0.10, "label": "Shooting lane"},
+          {"type": "threat_arrow", "from": [0.62, 0.46], "to": [0.78, 0.40], "label": "#9 run", "choice_id": "step_tackle"},
+          {"type": "open_lane", "from": [0.50, 0.52], "to": [0.58, 0.48], "label": "Delay angle", "choice_id": "delay_run"},
+          {"type": "danger_zone", "at": [0.65, 0.44], "radius": 0.10, "label": "Shooting lane", "choice_id": "stand_guess"},
           {"type": "label", "at": [0.62, 0.44], "text": "#9", "color": "#fca5a5"}
         ]
       },
@@ -402,9 +403,9 @@
         "opponents": [[0.24, 0.58], [0.30, 0.52], [0.20, 0.48]],
         "pressure_zones": [[0.22, 0.58, 0.08]],
         "visual_cues": [
-          {"type": "open_lane", "from": [0.18, 0.62], "to": [0.28, 0.58], "label": "Short option"},
-          {"type": "threat_arrow", "from": [0.24, 0.58], "to": [0.18, 0.62], "label": "Press"},
-          {"type": "threat_arrow", "from": [0.30, 0.52], "to": [0.22, 0.58], "label": "Trap"},
+          {"type": "open_lane", "from": [0.18, 0.62], "to": [0.28, 0.58], "label": "Short option", "choice_id": "chest_control"},
+          {"type": "threat_arrow", "from": [0.24, 0.58], "to": [0.18, 0.62], "label": "Press", "choice_id": "nod_down"},
+          {"type": "threat_arrow", "from": [0.30, 0.52], "to": [0.22, 0.58], "label": "Trap", "choice_id": "miscontrol_panic"},
           {"type": "label", "at": [0.10, 0.68], "text": "TOUCH", "color": "#94a3b8"}
         ]
       },
@@ -450,14 +451,15 @@
       "pitch": {
         "ball": [0.78, 0.35],
         "you": [0.55, 0.48],
-        "teammates": [[0.42, 0.58], [0.38, 0.72], [0.85, 0.62]],
+        "teammates": [[0.42, 0.58], [0.38, 0.72], [0.72, 0.55]],
         "opponents": [[0.75, 0.32], [0.68, 0.48], [0.82, 0.55]],
         "pressure_zones": [[0.72, 0.38, 0.15]],
         "highlight": "you",
         "visual_cues": [
-          {"type": "threat_arrow", "from": [0.75, 0.32], "to": [0.85, 0.62], "label": "Cross lane"},
-          {"type": "danger_zone", "at": [0.80, 0.48], "radius": 0.11, "label": "Goal threat"},
-          {"type": "open_lane", "from": [0.55, 0.48], "to": [0.72, 0.38], "label": "Recovery run"}
+          {"type": "threat_arrow", "from": [0.75, 0.32], "to": [0.85, 0.62], "label": "Cross lane", "choice_id": "stop_and_argue"},
+          {"type": "danger_zone", "at": [0.80, 0.48], "radius": 0.11, "label": "Goal threat", "choice_id": "call_offside_trap"},
+          {"type": "open_lane", "from": [0.55, 0.48], "to": [0.72, 0.38], "label": "Recovery run", "choice_id": "recovery_sprint"},
+          {"type": "label", "at": [0.75, 0.30], "text": "W", "color": "#fca5a5"}
         ]
       },
       "choices": [
@@ -507,8 +509,9 @@
         "pressure_zones": [[0.45, 0.50, 0.08]],
         "highlight": "you",
         "visual_cues": [
-          {"type": "open_lane", "from": [0.38, 0.55], "to": [0.18, 0.68], "label": "Switch play"},
-          {"type": "danger_zone", "at": [0.48, 0.48], "radius": 0.07, "label": "Central press"},
+          {"type": "open_lane", "from": [0.38, 0.55], "to": [0.18, 0.68], "label": "Switch play", "choice_id": "switch_play"},
+          {"type": "danger_zone", "at": [0.48, 0.48], "radius": 0.07, "label": "Central press", "choice_id": "circulate_safe"},
+          {"type": "threat_arrow", "from": [0.48, 0.48], "to": [0.42, 0.52], "label": "Packed middle", "choice_id": "dribble_forward"},
           {"type": "label", "at": [0.18, 0.66], "text": "1v1", "color": "#86efac"}
         ]
       },
@@ -559,8 +562,9 @@
         "pressure_zones": [[0.50, 0.50, 0.18]],
         "highlight": "you",
         "visual_cues": [
-          {"type": "open_lane", "from": [0.48, 0.58], "to": [0.50, 0.60], "label": "Demand ball"},
-          {"type": "danger_zone", "at": [0.50, 0.50], "radius": 0.14, "label": "Crowd pressure"},
+          {"type": "open_lane", "from": [0.48, 0.58], "to": [0.50, 0.60], "label": "Demand ball", "choice_id": "verbal_reset"},
+          {"type": "danger_zone", "at": [0.50, 0.50], "radius": 0.14, "label": "Crowd pressure", "choice_id": "hide_from_ball"},
+          {"type": "threat_arrow", "from": [0.52, 0.42], "to": [0.48, 0.58], "label": "Redemption lunge", "choice_id": "reckless_tackle"},
           {"type": "label", "at": [0.35, 0.43], "text": "?", "color": "#94a3b8"}
         ]
       },
@@ -611,10 +615,10 @@
         "pressure_zones": [[0.55, 0.48, 0.14]],
         "highlight": "you",
         "visual_cues": [
-          {"type": "open_lane", "from": [0.55, 0.50], "to": [0.68, 0.58], "label": "Split pass"},
+          {"type": "open_lane", "from": [0.55, 0.50], "to": [0.68, 0.58], "label": "Split pass", "choice_id": "split_pass"},
           {"type": "threat_arrow", "from": [0.60, 0.45], "to": [0.55, 0.50], "label": "Press"},
-          {"type": "threat_arrow", "from": [0.72, 0.52], "to": [0.55, 0.50], "label": "Press"},
-          {"type": "danger_zone", "at": [0.62, 0.50], "radius": 0.10, "label": "Trap"}
+          {"type": "threat_arrow", "from": [0.72, 0.52], "to": [0.55, 0.50], "label": "Press", "choice_id": "carry_into_space"},
+          {"type": "danger_zone", "at": [0.62, 0.50], "radius": 0.10, "label": "Trap", "choice_id": "panic_clearance"}
         ]
       },
       "choices": [
@@ -663,9 +667,9 @@
         "opponents": [[0.48, 0.52], [0.58, 0.45], [0.52, 0.35]],
         "pressure_zones": [[0.46, 0.52, 0.12]],
         "visual_cues": [
-          {"type": "open_lane", "from": [0.42, 0.58], "to": [0.28, 0.48], "label": "Safe recycle"},
-          {"type": "threat_arrow", "from": [0.48, 0.52], "to": [0.42, 0.58], "label": "Press"},
-          {"type": "danger_zone", "at": [0.50, 0.50], "radius": 0.10, "label": "Turnover zone"},
+          {"type": "open_lane", "from": [0.42, 0.58], "to": [0.28, 0.48], "label": "Safe recycle", "choice_id": "circulate_safe"},
+          {"type": "threat_arrow", "from": [0.48, 0.52], "to": [0.42, 0.58], "label": "Press", "choice_id": "carry_into_space"},
+          {"type": "danger_zone", "at": [0.50, 0.50], "radius": 0.10, "label": "Turnover zone", "choice_id": "panic_clearance"},
           {"type": "label", "at": [0.12, 0.12], "text": "88'", "color": "#fbbf24"}
         ]
       },
@@ -711,14 +715,14 @@
       "pitch": {
         "ball": [0.52, 0.50],
         "you": [0.52, 0.50],
-        "teammates": [[0.68, 0.42], [0.72, 0.58], [0.45, 0.65]],
+        "teammates": [[0.55, 0.68], [0.72, 0.58], [0.45, 0.65]],
         "opponents": [[0.62, 0.48], [0.78, 0.52]],
         "pressure_zones": [[0.58, 0.48, 0.10]],
         "visual_cues": [
-          {"type": "open_lane", "from": [0.52, 0.50], "to": [0.68, 0.42], "label": "Through ball"},
-          {"type": "open_lane", "from": [0.52, 0.50], "to": [0.72, 0.58], "label": "Wide runner"},
-          {"type": "threat_arrow", "from": [0.62, 0.48], "to": [0.52, 0.50], "label": "Recovery run"},
-          {"type": "label", "at": [0.68, 0.40], "text": "ST", "color": "#86efac"}
+          {"type": "open_lane", "from": [0.52, 0.50], "to": [0.55, 0.68], "label": "Through ball", "choice_id": "split_pass"},
+          {"type": "open_lane", "from": [0.52, 0.50], "to": [0.72, 0.58], "label": "Wide runner", "choice_id": "drive_half_space"},
+          {"type": "threat_arrow", "from": [0.62, 0.48], "to": [0.52, 0.50], "label": "Recovery run", "choice_id": "dribble_forward"},
+          {"type": "label", "at": [0.55, 0.66], "text": "ST", "color": "#86efac"}
         ]
       },
       "choices": [
